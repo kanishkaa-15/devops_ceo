@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useState, useEffect } from 'react'
+import { Badge } from '@/components/ui/badge'
 
 interface Student {
   id: string
@@ -18,6 +19,8 @@ interface Student {
   grade: string
 }
 
+import { TrendingUp, Users as UsersIcon, Award, Percent, BookOpen } from 'lucide-react'
+
 export default function StudentPerformanceOverview() {
   const [students, setStudents] = useState<Student[]>([])
 
@@ -31,10 +34,8 @@ export default function StudentPerformanceOverview() {
 
     loadStudents()
 
-    // Poll for changes every 2 seconds
     const interval = setInterval(loadStudents, 2000)
 
-    // Listen for storage changes
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'students') {
         loadStudents()
@@ -42,12 +43,11 @@ export default function StudentPerformanceOverview() {
     }
 
     window.addEventListener('storage', handleStorageChange)
-    
-    // Also listen for custom events for same-tab updates
+
     const handleStudentsUpdate = () => {
       loadStudents()
     }
-    
+
     window.addEventListener('studentsUpdated', handleStudentsUpdate)
 
     return () => {
@@ -57,13 +57,11 @@ export default function StudentPerformanceOverview() {
     }
   }, [])
 
-  // Calculate student statistics
   const totalStudents = students.length
   const averageMarks = students.length > 0 ? (students.reduce((sum, student) => sum + student.overall, 0) / students.length).toFixed(1) : 0
   const passCount = students.filter((student) => student.overall >= 60).length
   const passPercentage = totalStudents > 0 ? ((passCount / totalStudents) * 100).toFixed(1) : 0
 
-  // Grade-wise performance
   const gradeWisePerformance = [
     { grade: 'Class 6', students: students.filter((s) => s.class === 'Class 6').length, avgMarks: students.filter((s) => s.class === 'Class 6').reduce((sum, s) => sum + s.overall, 0) / Math.max(students.filter((s) => s.class === 'Class 6').length, 1) },
     { grade: 'Class 7', students: students.filter((s) => s.class === 'Class 7').length, avgMarks: students.filter((s) => s.class === 'Class 7').reduce((sum, s) => sum + s.overall, 0) / Math.max(students.filter((s) => s.class === 'Class 7').length, 1) },
@@ -74,7 +72,6 @@ export default function StudentPerformanceOverview() {
     { grade: 'Class 12', students: students.filter((s) => s.class === 'Class 12').length, avgMarks: students.filter((s) => s.class === 'Class 12').reduce((sum, s) => sum + s.overall, 0) / Math.max(students.filter((s) => s.class === 'Class 12').length, 1) },
   ]
 
-  // Performance distribution
   const performanceDistribution = [
     { range: 'Excellent (90-100)', count: students.filter((s) => s.overall >= 90).length, fill: '#10b981' },
     { range: 'Good (75-89)', count: students.filter((s) => s.overall >= 75 && s.overall < 90).length, fill: '#3b82f6' },
@@ -82,93 +79,80 @@ export default function StudentPerformanceOverview() {
     { range: 'Below Average (<60)', count: students.filter((s) => s.overall < 60).length, fill: '#ef4444' },
   ]
 
-  // Performance trend over students
   const performanceTrend = students
-    .slice(0, 20) // Show first 20 students for trend
+    .slice(0, 20)
     .map((student, idx) => ({
       student: `${idx + 1}`,
       marks: student.overall,
       name: student.name.split(' ')[0],
     }))
 
+  const statsCards = [
+    { label: 'Total Students', value: totalStudents, sub: 'Active in system', icon: UsersIcon, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { label: 'Avg. Score', value: averageMarks, sub: 'Out of 100', icon: Award, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { label: 'Pass Rate', value: `${passPercentage}%`, sub: `${passCount} Students`, icon: Percent, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+    { label: 'Success Rate', value: `${students.filter((s) => s.grade !== 'F').length}/${totalStudents}`, sub: 'Passing Grades', icon: BookOpen, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+  ]
+
   return (
     <div className="space-y-6">
-      {/* Key Statistics */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Students</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{totalStudents}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active students in system</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">{averageMarks}</div>
-            <p className="text-xs text-muted-foreground mt-1">Out of 100</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pass Percentage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-accent">{passPercentage}%</div>
-            <p className="text-xs text-muted-foreground mt-1">{passCount} students passed</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Success Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">
-              {students.filter((s) => s.grade !== 'F').length}/{totalStudents}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Students with passing grades</p>
-          </CardContent>
-        </Card>
+      {/* Key Statistics Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statsCards.map((stat) => (
+          <Card key={stat.label} className="bg-card border-border/50 overflow-hidden group hover:border-primary/50 transition-colors">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform`}>
+                  <stat.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                  <div className="flex items-baseline gap-1">
+                    <h4 className="text-2xl font-black text-foreground">{stat.value}</h4>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-medium">{stat.sub}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Charts Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Grade-wise Performance */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Grade-wise Performance</CardTitle>
+        <Card className="bg-card border-border/50 shadow-sm">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-bold">Grade-wise Performance</CardTitle>
+              <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={gradeWisePerformance}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="grade" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+              <BarChart data={gradeWisePerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="grade" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 600 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 600 }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                   }}
-                  cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                  cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
                 />
-                <Bar dataKey="avgMarks" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="avgMarks" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Performance Distribution */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Performance Distribution</CardTitle>
+        <Card className="bg-card border-border/50 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-bold">Performance Distribution</CardTitle>
           </CardHeader>
           <CardContent className="flex justify-center">
             <ResponsiveContainer width="100%" height={300}>
@@ -177,17 +161,20 @@ export default function StudentPerformanceOverview() {
                   data={performanceDistribution}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={({ range, count }) => `${range}: ${count}`}
-                  outerRadius={80}
-                  fill="#8884d8"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
                   dataKey="count"
                 >
                   {performanceDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                    <Cell key={`cell-${index}`} fill={entry.fill} stroke="transparent" />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`${value} students`, 'Count']} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: number) => [`${value} Students`, 'Count']}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -195,31 +182,34 @@ export default function StudentPerformanceOverview() {
       </div>
 
       {/* Performance Trend */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-lg">Academic Performance Trend</CardTitle>
+      <Card className="bg-card border-border/50 shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold">Academic Performance Trend</CardTitle>
+            <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-widest">First 20 Students</Badge>
+          </div>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={performanceTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" domain={[0, 100]} />
+            <LineChart data={performanceTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 600 }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 600 }} domain={[0, 100]} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                 }}
               />
-              <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
               <Line
                 type="monotone"
                 dataKey="marks"
                 stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                dot={{ fill: 'hsl(var(--primary))', r: 4 }}
-                activeDot={{ r: 6 }}
+                strokeWidth={4}
+                dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4, stroke: 'white' }}
+                activeDot={{ r: 6, strokeWidth: 0 }}
                 name="Student Marks"
               />
             </LineChart>

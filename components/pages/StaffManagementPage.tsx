@@ -47,7 +47,7 @@ interface StaffMember {
 }
 
 interface StaffManagementPageProps {
-  onNavigate: (page: 'dashboard' | 'staff' | 'admissions' | 'queries' | 'admin') => void
+  onNavigate: (page: 'dashboard' | 'staff' | 'admissions' | 'queries' | 'admin' | 'student-performance') => void
 }
 
 export default function StaffManagementPage({ onNavigate }: StaffManagementPageProps) {
@@ -60,10 +60,10 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
   const [openDialog, setOpenDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<StaffMember>>({});
-  
+
   // Detect user role from localStorage
   const [userRole, setUserRole] = useState<string>('admin');
-  
+
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) {
@@ -78,7 +78,12 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
 
   const fetchStaff = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/staff');
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:5000/api/staff', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       setStaff(data);
     } catch (error) {
@@ -93,11 +98,11 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
 
   const filteredStaff = useMemo(() => {
     return staff.filter(member => {
-      const matchesSearch = 
+      const matchesSearch =
         member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         member.position.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesDepartment = departmentFilter === 'all' || member.department === departmentFilter;
       const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
 
@@ -140,17 +145,24 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
     }
 
     try {
+      const token = localStorage.getItem('token')
       if (editingId) {
         const response = await fetch(`http://localhost:5000/api/staff/${editingId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(formData)
         });
         if (!response.ok) throw new Error('Failed to update staff');
       } else {
         const response = await fetch('http://localhost:5000/api/staff', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(formData)
         });
         if (!response.ok) throw new Error('Failed to add staff');
@@ -166,8 +178,12 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
   const handleDeleteStaff = async (id: string) => {
     if (confirm('Are you sure you want to delete this staff member?')) {
       try {
+        const token = localStorage.getItem('token')
         const response = await fetch(`http://localhost:5000/api/staff/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
         if (!response.ok) throw new Error('Failed to delete staff');
         fetchStaff(); // Refresh the list
@@ -202,19 +218,19 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
   return (
     <div className="flex h-screen bg-background">
       {userRole === 'ceo' ? (
-        <CEOSidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)} 
-          onNavigate={onNavigate} 
+        <CEOSidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onNavigate={onNavigate}
         />
       ) : (
-        <Sidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)} 
-          onNavigate={onNavigate} 
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onNavigate={onNavigate}
         />
       )}
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-background border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">

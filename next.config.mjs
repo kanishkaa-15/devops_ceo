@@ -6,6 +6,11 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    turbo: {
+      root: 'D:/school-ceo-dashboard review 1/school-ceo-dashboard'
+    }
+  }
 }
 
 export default nextConfig

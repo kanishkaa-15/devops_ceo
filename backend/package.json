@@ -9,12 +9,20 @@
     "seed": "node seed.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.5.1",
+    "google-auth-library": "^10.6.1",
+    "html2canvas": "^1.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
     "mongoose": "^8.0.0",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2"
+    "node-cache": "^5.1.2",
+    "node-cron": "^4.2.1",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

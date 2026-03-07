@@ -24,6 +24,8 @@ export default function SignupPage({ onNavigateToLogin }: SignupPageProps) {
     confirmPassword: '',
     role: 'staff',
     studentName: '',
+    assignedClass: '',
+    assignedSection: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -93,6 +95,8 @@ export default function SignupPage({ onNavigateToLogin }: SignupPageProps) {
             password: formData.password,
             role: formData.role,
             studentName: formData.role === 'parent' ? formData.studentName : undefined,
+            assignedClass: formData.role === 'staff' ? formData.assignedClass : undefined,
+            assignedSection: formData.role === 'staff' ? formData.assignedSection : undefined,
           }),
         })
 
@@ -103,7 +107,7 @@ export default function SignupPage({ onNavigateToLogin }: SignupPageProps) {
             title: 'Success',
             description: `Welcome, ${formData.name}! Account created successfully. You can now login.`,
           })
-          setFormData({ name: '', email: '', password: '', confirmPassword: '', role: 'staff', studentName: '' })
+          setFormData({ name: '', email: '', password: '', confirmPassword: '', role: 'staff', studentName: '', assignedClass: '', assignedSection: '' })
           onNavigateToLogin()
         } else {
           toast({
@@ -221,6 +225,37 @@ export default function SignupPage({ onNavigateToLogin }: SignupPageProps) {
                   className={`border-border/50 focus:border-primary ${errors.studentName ? 'border-destructive' : ''}`}
                 />
                 {errors.studentName && <p className="text-xs text-destructive">{errors.studentName}</p>}
+              </div>
+            )}
+
+            {formData.role === 'staff' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="assignedClass" className="text-sm font-medium">Assigned Class</Label>
+                  <Select value={formData.assignedClass || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, assignedClass: value }))}>
+                    <SelectTrigger className="border-border/50 focus:border-primary">
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'].map(cls => (
+                        <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="assignedSection" className="text-sm font-medium">Section</Label>
+                  <Select value={formData.assignedSection || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, assignedSection: value }))}>
+                    <SelectTrigger className="border-border/50 focus:border-primary">
+                      <SelectValue placeholder="Select section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {['A', 'B', 'C', 'D'].map(sec => (
+                        <SelectItem key={sec} value={sec}>Sec {sec}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
 

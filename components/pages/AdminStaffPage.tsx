@@ -45,7 +45,7 @@ const POSITIONS = ['Teacher', 'Senior Teacher', 'Department Head', 'Lab Coordina
 const STATUSES = ['Active', 'Inactive'] as const
 
 interface AdminStaffPageProps {
-  onNavigate: (page: 'admin-staff' | 'admin-admissions' | 'admin-queries' | 'admin' | 'dashboard') => void
+  onNavigate: (page: 'dashboard' | 'staff' | 'admissions' | 'queries' | 'admin' | 'student-performance') => void
 }
 
 export default function AdminStaffPage({ onNavigate }: AdminStaffPageProps) {
@@ -61,7 +61,12 @@ export default function AdminStaffPage({ onNavigate }: AdminStaffPageProps) {
 
   const fetchStaff = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/staff')
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:5000/api/staff', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       const data = await response.json()
       setStaff(data)
     } catch (error) {
@@ -106,16 +111,23 @@ export default function AdminStaffPage({ onNavigate }: AdminStaffPageProps) {
     }
 
     try {
+      const token = localStorage.getItem('token')
       if (editingId) {
         await fetch(`http://localhost:5000/api/staff/${editingId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(formData)
         })
       } else {
         await fetch('http://localhost:5000/api/staff', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(formData)
         })
       }
@@ -130,8 +142,12 @@ export default function AdminStaffPage({ onNavigate }: AdminStaffPageProps) {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this staff member?')) {
       try {
+        const token = localStorage.getItem('token')
         await fetch(`http://localhost:5000/api/staff/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         })
         fetchStaff()
       } catch (error) {

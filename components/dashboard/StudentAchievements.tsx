@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, Edit2, Trash2, Trophy, Medal, Award, Loader2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, Trophy, Medal, Award, Loader2, Star, Calendar, Globe, MapPin, Building, GraduationCap, ChevronRight } from 'lucide-react'
 import { apiService } from '@/lib/api'
 import { toast } from '@/hooks/use-toast'
 
@@ -39,7 +39,7 @@ interface StudentAchievementsProps {
 }
 
 const COMPETITIONS = [
-  'Science Fair', 'Math Olympiad', 'Debate Competition', 'Art Contest', 
+  'Science Fair', 'Math Olympiad', 'Debate Competition', 'Art Contest',
   'Sports Meet', 'Quiz Competition', 'Essay Writing', 'Spelling Bee',
   'Robotics Competition', 'Music Competition', 'Drama Festival', 'Poetry Recitation'
 ]
@@ -98,7 +98,6 @@ export default function StudentAchievements({ isEditable = false }: StudentAchie
 
   const handleEditClick = (achievement: Achievement) => {
     setEditingId(achievement._id)
-    // Format date for input
     const formattedDate = achievement.date ? new Date(achievement.date).toISOString().split('T')[0] : ''
     setFormData({
       ...achievement,
@@ -163,157 +162,215 @@ export default function StudentAchievements({ isEditable = false }: StudentAchie
     }
   }
 
-  const getPositionIcon = (position: string) => {
+  const getPositionStyle = (position: string) => {
     switch (position) {
-      case '1st': return <Trophy className="h-4 w-4 text-yellow-600" />
-      case '2nd': return <Medal className="h-4 w-4 text-gray-500" />
-      case '3rd': return <Award className="h-4 w-4 text-orange-600" />
-      default: return <Award className="h-4 w-4 text-blue-600" />
+      case '1st': return { icon: Trophy, color: 'text-yellow-500', bg: 'bg-yellow-500/10' }
+      case '2nd': return { icon: Medal, color: 'text-gray-400', bg: 'bg-gray-400/10' }
+      case '3rd': return { icon: Award, color: 'text-amber-600', bg: 'bg-amber-600/10' }
+      default: return { icon: Star, color: 'text-primary', bg: 'bg-primary/10' }
+    }
+  }
+
+  const getLevelIcon = (level: string) => {
+    switch (level) {
+      case 'International': return Globe
+      case 'National': return Building
+      case 'State': return MapPin
+      case 'District': return MapPin
+      default: return GraduationCap
     }
   }
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'International': return 'bg-purple-100 text-purple-800'
-      case 'National': return 'bg-red-100 text-red-800'
-      case 'State': return 'bg-blue-100 text-blue-800'
-      case 'District': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'International': return 'bg-purple-500/10 text-purple-600 border-purple-500/20'
+      case 'National': return 'bg-red-500/10 text-red-600 border-red-500/20'
+      case 'State': return 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+      case 'District': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+      default: return 'bg-secondary/50 text-muted-foreground border-border/50'
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="bg-card border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5" />
-            Student Achievements
-          </CardTitle>
-          {isEditable && (
-            <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-              <DialogTrigger asChild>
-                <Button size="sm" onClick={handleAddClick}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Achievement
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingId ? 'Edit Achievement' : 'Add New Achievement'}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Student Name"
-                    value={formData.studentName || ''}
-                    onChange={(e) => setFormData({ ...formData, studentName: e.target.value })}
-                  />
-                  <Select value={formData.competition || ''} onValueChange={(value) => setFormData({ ...formData, competition: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Competition" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COMPETITIONS.map(comp => (
-                        <SelectItem key={comp} value={comp}>{comp}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={formData.category || ''} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={formData.position || ''} onValueChange={(value) => setFormData({ ...formData, position: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Position" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {POSITIONS.map(pos => (
-                        <SelectItem key={pos} value={pos}>{pos}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={formData.level || 'School'} onValueChange={(value) => setFormData({ ...formData, level: value as any })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LEVELS.map(level => (
-                        <SelectItem key={level} value={level}>{level}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="date"
-                    value={formData.date || ''}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Description (optional)"
-                    value={formData.description || ''}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                  <Button onClick={handleSave} className="w-full">
-                    {editingId ? 'Update Achievement' : 'Add Achievement'}
+          <div>
+            <CardTitle className="text-xl font-bold text-foreground">Global Student Talent</CardTitle>
+            <CardDescription>Extra-curricular excellence & competitions</CardDescription>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Star className="w-5 h-5 text-primary" />
+            </div>
+            {isEditable && (
+              <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+                <DialogTrigger asChild>
+                  <Button size="sm" onClick={handleAddClick} className="gap-2 font-black uppercase text-[10px] tracking-widest px-4">
+                    <Plus className="h-3 w-3" /> Add Milestone
                   </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+                </DialogTrigger>
+                <DialogContent className="max-w-md bg-card border-border shadow-2xl rounded-3xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-black text-foreground">
+                      {editingId ? 'Refine Achievement' : 'Record New Triumph'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Student Identity</label>
+                      <Input
+                        placeholder="Full Name"
+                        className="rounded-xl bg-secondary/50 border-none h-11"
+                        value={formData.studentName || ''}
+                        onChange={(e) => setFormData({ ...formData, studentName: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Competition</label>
+                        <Select value={formData.competition || ''} onValueChange={(value) => setFormData({ ...formData, competition: value })}>
+                          <SelectTrigger className="rounded-xl bg-secondary/50 border-none h-11">
+                            <SelectValue placeholder="Domain" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-border bg-card">
+                            {COMPETITIONS.map(comp => (
+                              <SelectItem key={comp} value={comp} className="rounded-lg">{comp}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Category</label>
+                        <Select value={formData.category || ''} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                          <SelectTrigger className="rounded-xl bg-secondary/50 border-none h-11">
+                            <SelectValue placeholder="Format" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-border bg-card">
+                            {CATEGORIES.map(cat => (
+                              <SelectItem key={cat} value={cat} className="rounded-lg">{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Outcome</label>
+                        <Select value={formData.position || ''} onValueChange={(value) => setFormData({ ...formData, position: value })}>
+                          <SelectTrigger className="rounded-xl bg-secondary/50 border-none h-11 font-bold">
+                            <SelectValue placeholder="Rank" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-border bg-card">
+                            {POSITIONS.map(pos => (
+                              <SelectItem key={pos} value={pos} className="rounded-lg font-bold">{pos}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Scope</label>
+                        <Select value={formData.level || 'School'} onValueChange={(value) => setFormData({ ...formData, level: value as any })}>
+                          <SelectTrigger className="rounded-xl bg-secondary/50 border-none h-11">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-border bg-card">
+                            {LEVELS.map(level => (
+                              <SelectItem key={level} value={level} className="rounded-lg">{level}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Event Date</label>
+                      <Input
+                        type="date"
+                        className="rounded-xl bg-secondary/50 border-none h-11"
+                        value={formData.date || ''}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      />
+                    </div>
+                    <Button onClick={handleSave} className="w-full h-12 rounded-xl font-black uppercase tracking-widest mt-2 shadow-lg shadow-primary/20 transition-all active:scale-95">
+                      {editingId ? 'Update Record' : 'Log Achievement'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest animate-pulse">Synchronizing Merit database</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {achievements.map((achievement) => (
-              <div key={achievement._id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getPositionIcon(achievement.position)}
-                      <h4 className="font-semibold">{achievement.studentName}</h4>
-                      <Badge className={getLevelColor(achievement.level)}>
-                        {achievement.level}
-                      </Badge>
+          <div className="grid gap-4">
+            {achievements.length === 0 ? (
+              <div className="text-center py-20 bg-secondary/20 rounded-2xl border border-dashed border-border/50">
+                <Medal className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Competitive pipeline initializing</p>
+              </div>
+            ) : (
+              achievements.map((achievement) => {
+                const style = getPositionStyle(achievement.position)
+                const LevelIcon = getLevelIcon(achievement.level)
+                return (
+                  <div key={achievement._id} className="group relative overflow-hidden bg-secondary/20 hover:bg-secondary/40 rounded-2xl p-4 transition-all duration-300 border border-transparent hover:border-border/50 shadow-sm">
+                    <div className="flex items-start justify-between relative z-10">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`p-1.5 rounded-lg ${style.bg} ${style.color}`}>
+                            <style.icon className="h-4 w-4" />
+                          </div>
+                          <h4 className="font-bold text-foreground text-sm truncate">{achievement.studentName}</h4>
+                          <Badge variant="outline" className={`text-[8px] font-black uppercase flex items-center gap-1 ${getLevelColor(achievement.level)}`}>
+                            <LevelIcon className="h-2 w-2" />
+                            {achievement.level}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2">
+                          <p className="text-[11px] font-bold text-foreground">
+                            {achievement.competition}
+                          </p>
+                          <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                            <GraduationCap className="h-3 w-3" /> {achievement.category}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1.5 bg-background/50 rounded-md px-2 py-0.5 border border-border/30">
+                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Rank</span>
+                            <span className={`text-[11px] font-black ${style.color}`}>{achievement.position}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span className="text-[9px] font-black uppercase">{new Date(achievement.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 ml-4 self-center">
+                        {isEditable && (
+                          <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg shadow-sm" onClick={() => handleEditClick(achievement)}>
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="destructive" className="h-8 w-8 rounded-lg shadow-sm bg-red-500/10 text-red-600 border-none hover:bg-red-500/20" onClick={() => handleDelete(achievement._id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      <strong>{achievement.competition}</strong> - {achievement.category}
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Position: <strong>{achievement.position}</strong> | Date: {new Date(achievement.date).toLocaleDateString()}
-                    </p>
-                    {achievement.description && (
-                      <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                    )}
+                    {/* Background accent */}
+                    <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-none opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  {isEditable && (
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEditClick(achievement)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDelete(achievement._id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {achievements.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No achievements recorded yet
-              </div>
+                )
+              })
             )}
           </div>
         )}

@@ -10,4 +10,7 @@ const staffSchema = new mongoose.Schema({
   experience: { type: Number, required: true }
 }, { timestamps: true });
 
+// Optimize analytics calculations for retention rate
+staffSchema.index({ status: 1, department: 1 });
+
 module.exports = mongoose.model('Staff', staffSchema);

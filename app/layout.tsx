@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { DataProvider } from '@/context/DataContext'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -37,13 +38,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+  const isGoogleConfigured = googleClientId && googleClientId !== 'your_google_client_id_here'
+
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        <DataProvider>
-          {children}
-          <Toaster />
-        </DataProvider>
+        {isGoogleConfigured ? (
+          <GoogleOAuthProvider clientId={googleClientId!}>
+            <DataProvider>
+              {children}
+              <Toaster />
+            </DataProvider>
+          </GoogleOAuthProvider>
+        ) : (
+          <DataProvider>
+            {children}
+            <Toaster />
+          </DataProvider>
+        )}
         <Analytics />
       </body>
     </html>

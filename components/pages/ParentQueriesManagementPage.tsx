@@ -45,7 +45,7 @@ interface ParentQuery {
 }
 
 interface ParentQueriesManagementPageProps {
-  onNavigate: (page: 'dashboard' | 'staff' | 'admissions' | 'queries' | 'admin') => void
+  onNavigate: (page: 'dashboard' | 'staff' | 'admissions' | 'queries' | 'admin' | 'student-performance') => void
 }
 
 export default function ParentQueriesManagementPage({ onNavigate }: ParentQueriesManagementPageProps) {
@@ -59,10 +59,10 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
   const [openDialog, setOpenDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<ParentQuery>>({});
-  
+
   // Detect user role from localStorage
   const [userRole, setUserRole] = useState<string>('admin');
-  
+
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) {
@@ -74,7 +74,12 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
 
   const fetchQueries = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/queries');
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:5000/api/queries', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       setQueries(data);
     } catch (error) {
@@ -121,9 +126,13 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
 
     try {
       if (editingId) {
+        const token = localStorage.getItem('token')
         await fetch(`http://localhost:5000/api/queries/${editingId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             status: formData.status,
             priority: formData.priority,
@@ -143,8 +152,12 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
   const handleDeleteQuery = async (id: string) => {
     if (confirm('Are you sure you want to delete this query?')) {
       try {
+        const token = localStorage.getItem('token')
         await fetch(`http://localhost:5000/api/queries/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         })
         fetchQueries()
       } catch (error) {
@@ -199,19 +212,19 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
   return (
     <div className="flex h-screen bg-background">
       {userRole === 'ceo' ? (
-        <CEOSidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)} 
-          onNavigate={onNavigate} 
+        <CEOSidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onNavigate={onNavigate}
         />
       ) : (
-        <Sidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)} 
-          onNavigate={onNavigate} 
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onNavigate={onNavigate}
         />
       )}
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-background border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
@@ -366,9 +379,8 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
                                 </div>
                               </div>
                               <ChevronDown
-                                className={`h-5 w-5 text-muted-foreground transition-transform ${
-                                  expandedId === query._id ? 'rotate-180' : ''
-                                }`}
+                                className={`h-5 w-5 text-muted-foreground transition-transform ${expandedId === query._id ? 'rotate-180' : ''
+                                  }`}
                               />
                             </button>
                           </CollapsibleTrigger>

@@ -1,9 +1,11 @@
 const express = require('express');
 const Staff = require('../models/Staff');
+const { protect } = require('../middleware/authMiddleware');
+const { rbac } = require('../middleware/rbac');
 const router = express.Router();
 
-// GET all staff
-router.get('/', async (req, res) => {
+// GET all staff (Protected)
+router.get('/', protect, rbac(['ceo', 'admin']), async (req, res) => {
   try {
     const staff = await Staff.find().sort({ createdAt: -1 });
     res.json(staff);
@@ -12,8 +14,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET staff by ID
-router.get('/:id', async (req, res) => {
+// GET staff by ID (Protected)
+router.get('/:id', protect, rbac(['ceo', 'admin']), async (req, res) => {
   try {
     const member = await Staff.findById(req.params.id);
     if (!member) return res.status(404).json({ message: 'Staff member not found' });
@@ -23,8 +25,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST new staff member
-router.post('/', async (req, res) => {
+// POST new staff member (Protected)
+router.post('/', protect, rbac(['ceo', 'admin']), async (req, res) => {
   try {
     const member = new Staff(req.body);
     await member.save();
@@ -34,8 +36,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT update staff member
-router.put('/:id', async (req, res) => {
+// PUT update staff member (Protected)
+router.put('/:id', protect, rbac(['ceo', 'admin']), async (req, res) => {
   try {
     const member = await Staff.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!member) return res.status(404).json({ message: 'Staff member not found' });
@@ -45,8 +47,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE staff member
-router.delete('/:id', async (req, res) => {
+// DELETE staff member (Protected)
+router.delete('/:id', protect, rbac(['ceo', 'admin']), async (req, res) => {
   try {
     const member = await Staff.findByIdAndDelete(req.params.id);
     if (!member) return res.status(404).json({ message: 'Staff member not found' });

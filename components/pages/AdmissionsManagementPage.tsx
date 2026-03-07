@@ -33,18 +33,20 @@ import {
 
 interface AdmissionApplication {
   _id: string;
+  studentId?: string;
   studentName: string;
   parentName: string;
   email: string;
   phone: string;
   grade: string;
+  section: string;
   status: 'Pending' | 'Approved' | 'Rejected';
   applicationDate: string;
   notes?: string;
 }
 
 interface AdmissionsManagementPageProps {
-  onNavigate: (page: 'dashboard' | 'staff' | 'admissions' | 'queries' | 'admin') => void
+  onNavigate: (page: 'dashboard' | 'staff' | 'admissions' | 'queries' | 'admin' | 'student-performance') => void
 }
 
 export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManagementPageProps) {
@@ -57,10 +59,10 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
   const [openDialog, setOpenDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<AdmissionApplication>>({});
-  
+
   // Detect user role from localStorage
   const [userRole, setUserRole] = useState<string>('admin');
-  
+
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) {
@@ -72,7 +74,13 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
 
   const fetchAdmissions = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admissions');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${apiUrl}/admissions`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       setApplications(data);
     } catch (error) {
@@ -83,6 +91,7 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
   };
 
   const grades = Array.from(new Set(applications.map(a => a.grade))).sort();
+  const sections = ['A', 'B', 'C', 'D'];
   const statuses = ['Pending', 'Approved', 'Rejected'];
   const CLASS_LEVELS = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'];
 
@@ -119,11 +128,13 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
   const handleEditApplication = (application: AdmissionApplication) => {
     setEditingId(application._id);
     setFormData({
+      studentId: application.studentId || '',
       studentName: application.studentName,
       parentName: application.parentName,
       email: application.email,
       phone: application.phone,
       grade: application.grade,
+      section: application.section || 'A',
       status: application.status,
       applicationDate: application.applicationDate.split('T')[0],
       notes: application.notes || '',
@@ -138,17 +149,28 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
     }
 
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+
+      // Trim sensitive string fields for consistency
+      const cleanedData = {
+        ...formData,
+        studentName: formData.studentName?.trim(),
+        grade: formData.grade?.trim(),
+        section: formData.section?.trim() || 'A',
+        studentId: formData.studentId?.trim()
+      }
+
       if (editingId) {
-        await fetch(`http://localhost:5000/api/admissions/${editingId}`, {
+        await fetch(`${apiUrl}/admissions/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(cleanedData)
         });
       } else {
-        await fetch('http://localhost:5000/api/admissions', {
+        await fetch(`${apiUrl}/admissions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(cleanedData)
         });
       }
       fetchAdmissions();
@@ -162,7 +184,8 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
   const handleDeleteApplication = async (id: string) => {
     if (confirm('Are you sure you want to delete this application?')) {
       try {
-        await fetch(`http://localhost:5000/api/admissions/${id}`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+        await fetch(`${apiUrl}/admissions/${id}`, {
           method: 'DELETE'
         })
         fetchAdmissions()
@@ -205,19 +228,19 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
   return (
     <div className="flex h-screen bg-background">
       {userRole === 'ceo' ? (
-        <CEOSidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)} 
-          onNavigate={onNavigate} 
+        <CEOSidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onNavigate={onNavigate}
         />
       ) : (
-        <Sidebar 
-          isOpen={sidebarOpen} 
-          onClose={() => setSidebarOpen(false)} 
-          onNavigate={onNavigate} 
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onNavigate={onNavigate}
         />
       )}
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-background border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
@@ -338,6 +361,19 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
                             </Select>
                           </div>
                           <div>
+                            <label className="text-sm font-medium text-foreground">Section</label>
+                            <Select value={formData.section || 'A'} onValueChange={(value) => setFormData({ ...formData, section: value })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select section" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {sections.map(sec => (
+                                  <SelectItem key={sec} value={sec}>Section {sec}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
                             <label className="text-sm font-medium text-foreground">Application Date</label>
                             <Input
                               type="date"
@@ -449,6 +485,7 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
                         <TableHead>Student Name</TableHead>
                         <TableHead>Parent Name</TableHead>
                         <TableHead>Grade</TableHead>
+                        <TableHead>Section</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Phone</TableHead>
                         <TableHead>Date Applied</TableHead>
@@ -463,6 +500,7 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
                             <TableCell className="font-medium">{app.studentName}</TableCell>
                             <TableCell>{app.parentName}</TableCell>
                             <TableCell>{app.grade}</TableCell>
+                            <TableCell>{app.section || 'A'}</TableCell>
                             <TableCell>{app.email}</TableCell>
                             <TableCell>{app.phone}</TableCell>
                             <TableCell>{new Date(app.applicationDate).toLocaleDateString()}</TableCell>

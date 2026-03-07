@@ -37,7 +37,8 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/verify', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+      const response = await fetch(`${apiUrl}/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -68,6 +69,7 @@ export default function Home() {
         localStorage.removeItem('user')
       }
     } catch (error) {
+      console.error('Authentication check failed:', error)
       localStorage.removeItem('token')
       localStorage.removeItem('user')
     } finally {
