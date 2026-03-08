@@ -1,8 +1,7 @@
 # MongoDB Integration Setup Guide
 
 ## Prerequisites
-1. **Install MongoDB**: Download and install MongoDB Community Server from https://www.mongodb.com/try/download/community
-2. **Start MongoDB Service**: Ensure MongoDB is running on `mongodb://localhost:27017`
+1. **Docker & Docker Compose**: Ensure Docker is installed and running on your system.
 
 ## Quick Setup
 
