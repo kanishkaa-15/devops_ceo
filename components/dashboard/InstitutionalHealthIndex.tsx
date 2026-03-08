@@ -6,6 +6,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { AlertTriangle, CheckCircle, AlertCircle, TrendingUp, RefreshCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { DeltaBadge } from '@/components/ui/delta-badge'
+import { API_URL } from '@/lib/api-config'
 
 const getRiskColor = (risk: string) => {
   switch (risk) {
@@ -66,7 +67,7 @@ export default function InstitutionalHealthIndex({ onDataLoad }: { onDataLoad?: 
     const fetchHealthIndex = async () => {
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch('http://localhost:5000/api/analytics/health-index', {
+        const response = await fetch(`${API_URL}/analytics/health-index`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { motion } from 'framer-motion'
 import { CalendarDays, Clock, MapPin, Loader2 } from 'lucide-react'
+import { API_URL } from '@/lib/api-config'
 
 export default function UpcomingEvents() {
     const [events, setEvents] = useState<any[]>([])
@@ -13,7 +14,7 @@ export default function UpcomingEvents() {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/announcements?type=Event&type=Deadline')
+                const response = await fetch(`${API_URL}/announcements?type=Event&type=Deadline`)
                 const data = await response.json()
                 // Sort by date to show upcoming first
                 const sortedData = data.sort((a: any, b: any) => new Date(a.date).getTime() - new Date().getTime())

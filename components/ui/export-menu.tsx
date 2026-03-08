@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, FileText, Loader2 } from 'lucide-react';
+import { TrendingUp, FileText, Loader2, ShieldCheck } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -71,6 +71,31 @@ export function ExportMenu({ data }: { data: any }) {
                     }
                 });
             }
+
+            // Sentiment Analysis Section
+            let sentimentY = (doc as any).lastAutoTable.finalY + 15;
+            doc.setTextColor(15, 23, 42);
+            doc.text('3. Stakeholder Sentiment Pulse', 14, sentimentY);
+
+            const queries = data?.queries || [];
+            const total = queries.length || 1;
+            const positive = queries.filter((q: any) => q.sentiment === 'Positive').length;
+            const concerned = queries.filter((q: any) => q.sentiment === 'Concerned').length;
+            const neutral = queries.filter((q: any) => q.sentiment === 'Neutral').length;
+
+            const sentimentData = [
+                ['Positive Feedback', `${Math.round((positive / total) * 100)}%`, 'Healthy'],
+                ['Neutral Mentions', `${Math.round((neutral / total) * 100)}%`, 'Stable'],
+                ['Concerned Queries', `${Math.round((concerned / total) * 100)}%`, concerned > 2 ? 'Action Required' : 'Monitored'],
+            ];
+
+            autoTable(doc, {
+                startY: sentimentY + 5,
+                head: [['Category', 'Percentage', 'Status Index']],
+                body: sentimentData,
+                theme: 'striped',
+                headStyles: { fillColor: [244, 63, 94] }, // rose-500
+            });
 
             // Footer
             const pageCount = (doc as any).internal.getNumberOfPages();

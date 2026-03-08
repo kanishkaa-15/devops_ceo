@@ -28,6 +28,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { ArrowLeft, Plus, Edit2, Trash2, Search, Filter } from 'lucide-react'
+import { API_URL } from '@/lib/api-config'
 
 interface AdmissionApplication {
   _id: string
@@ -64,7 +65,7 @@ export default function AdminAdmissionsPage({ onNavigate }: AdminAdmissionsPageP
 
   const fetchAdmissions = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admissions')
+      const response = await fetch(`${API_URL}/admissions`)
       const data = await response.json()
       setAdmissions(Array.isArray(data) ? data : [])
     } catch (error) {
@@ -137,13 +138,13 @@ export default function AdminAdmissionsPage({ onNavigate }: AdminAdmissionsPageP
 
     try {
       if (editingId) {
-        await fetch(`http://localhost:5000/api/admissions/${editingId}`, {
+        await fetch(`${API_URL}/admissions/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         })
       } else {
-        await fetch('http://localhost:5000/api/admissions', {
+        await fetch(`${API_URL}/admissions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
@@ -160,7 +161,7 @@ export default function AdminAdmissionsPage({ onNavigate }: AdminAdmissionsPageP
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this application?')) {
       try {
-        await fetch(`http://localhost:5000/api/admissions/${id}`, {
+        await fetch(`${API_URL}/admissions/${id}`, {
           method: 'DELETE'
         })
         fetchAdmissions()

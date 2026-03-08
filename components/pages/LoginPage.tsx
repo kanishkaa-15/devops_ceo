@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { GraduationCap } from 'lucide-react'
 import { GoogleLogin } from '@react-oauth/google'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { API_URL } from '@/lib/api-config'
 
 interface LoginPageProps {
   onNavigateToSignup: () => void
@@ -69,7 +70,7 @@ export default function LoginPage({ onNavigateToSignup, onLogin }: LoginPageProp
     e.preventDefault()
     if (validateForm()) {
       try {
-        const response = await fetch('http://localhost:5000/api/auth/login', {
+        const response = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -168,10 +169,9 @@ export default function LoginPage({ onNavigateToSignup, onLogin }: LoginPageProp
   const fetchParentStudents = async (authData: any) => {
     try {
       setLoading(true)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
       const user = authData.user
       const identifier = user.name || user.email
-      const response = await fetch(`${apiUrl}/admissions/parent/${encodeURIComponent(identifier)}`, {
+      const response = await fetch(`${API_URL}/admissions/parent/${encodeURIComponent(identifier)}`, {
         headers: {
           'Authorization': `Bearer ${authData.token}`
         }
@@ -203,7 +203,7 @@ export default function LoginPage({ onNavigateToSignup, onLogin }: LoginPageProp
 
   const handleGoogleSuccess = async (response: any) => {
     try {
-      const res = await fetch('http://localhost:5000/api/auth/google-login', {
+      const res = await fetch(`${API_URL}/auth/google-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

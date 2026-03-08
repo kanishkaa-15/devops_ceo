@@ -33,7 +33,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
-    const io = req.app.get('socketio');
+    const io = req.app.get('io');
     const results = await importExcelData(req.file.path, io);
 
     // Clean up uploaded file

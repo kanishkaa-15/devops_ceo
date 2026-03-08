@@ -9,6 +9,7 @@ const querySchema = new mongoose.Schema({
   message: { type: String, required: true },
   status: { type: String, enum: ['Open', 'In Progress', 'Resolved'], default: 'Open' },
   priority: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Medium' },
+  sentiment: { type: String, enum: ['Positive', 'Neutral', 'Concerned'], default: 'Neutral' },
   response: { type: String },
   assignedTo: { type: String }
 }, { timestamps: true });

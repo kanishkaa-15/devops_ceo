@@ -3,9 +3,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PieChart, Pie, Cell, Legend, ResponsiveContainer, Tooltip } from 'recharts'
-import { MessageSquare, Clock, CheckCircle2, AlertCircle, Loader2, ChevronRight, Search } from 'lucide-react'
+import { MessageSquare, Clock, CheckCircle2, AlertCircle, Loader2, ChevronRight, Search, Zap, Send } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { API_URL } from '@/lib/api-config'
 import { Input } from '@/components/ui/input'
+import { generateSmartReply, Sentiment } from '@/lib/ai-utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 const getStatusConfig = (status: string) => {
   switch (status) {
@@ -24,6 +35,8 @@ export default function ParentQueries() {
   const [queries, setQueries] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedQuery, setSelectedQuery] = useState<any>(null)
+  const [smartReplyDraft, setSmartReplyDraft] = useState('')
 
   useEffect(() => {
     fetchQueries()
@@ -32,7 +45,7 @@ export default function ParentQueries() {
   const fetchQueries = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/queries', {
+      const response = await fetch(`${API_URL}/queries`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -44,6 +57,12 @@ export default function ParentQueries() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGenerateSmartReply = (query: any) => {
+    const draft = generateSmartReply(query.subject, query.message, query.sentiment || 'Neutral' as Sentiment)
+    setSmartReplyDraft(draft)
+    setSelectedQuery(query)
   }
 
   if (loading) {
@@ -178,7 +197,16 @@ export default function ParentQueries() {
                       </Badge>
                       <p className="text-[9px] text-muted-foreground font-black mt-1 uppercase">Updated 2h ago</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleGenerateSmartReply(query)}
+                        className="p-2 bg-primary/10 text-primary rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/20"
+                        title="AI Smart Reply"
+                      >
+                        <Zap className="w-4 h-4" />
+                      </button>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                    </div>
                   </div>
                 )
               })
@@ -194,6 +222,45 @@ export default function ParentQueries() {
           </div>
           <button className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">View Ops Console</button>
         </div>
+
+        {/* AI Smart Reply Dialog */}
+        <Dialog open={!!selectedQuery} onOpenChange={() => setSelectedQuery(null)}>
+          <DialogContent className="max-w-2xl bg-slate-900 border-white/10 text-white rounded-[2rem]">
+            <DialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <Zap className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-black uppercase italic italic tracking-tighter">AI Smart Reply</DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantum Drafting Engine</DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="space-y-6 pt-4">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Original Inquiry</p>
+                <p className="text-xs font-bold text-slate-300 italic">"{selectedQuery?.message}"</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                  Generated Draft <Badge className="bg-primary/20 text-primary border-none text-[8px]">{selectedQuery?.sentiment || 'Neutral'}</Badge>
+                </p>
+                <Textarea 
+                  value={smartReplyDraft}
+                  onChange={(e) => setSmartReplyDraft(e.target.value)}
+                  className="min-h-[150px] bg-slate-950 border-white/10 rounded-2xl text-xs font-medium leading-relaxed"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="ghost" onClick={() => setSelectedQuery(null)} className="rounded-xl text-[10px] font-black uppercase tracking-widest">Discard</Button>
+                <Button className="rounded-xl bg-primary hover:bg-primary/80 transition-all text-[10px] font-black uppercase tracking-widest gap-2">
+                  <Send className="w-3 h-3" /> Send Response
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   )

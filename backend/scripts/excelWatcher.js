@@ -17,7 +17,10 @@ const initExcelWatcher = (io) => {
   }
 
   const watcher = chokidar.watch(watchDir, {
-    ignored: /(^|[\/\\])\../, // ignore dotfiles
+    ignored: [
+      /(^|[\/\\])\../, // ignore dotfiles
+      /~\$.*/          // ignore Excel temporary files
+    ],
     persistent: true,
     awaitWriteFinish: {
       stabilityThreshold: 1000,

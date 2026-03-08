@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { API_URL } from '@/lib/api-config'
 
 interface AdmissionApplication {
   _id: string;
@@ -74,9 +75,8 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
 
   const fetchAdmissions = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
       const token = localStorage.getItem('token')
-      const response = await fetch(`${apiUrl}/admissions`, {
+      const response = await fetch(`${API_URL}/admissions`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -149,9 +149,6 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-
-      // Trim sensitive string fields for consistency
       const cleanedData = {
         ...formData,
         studentName: formData.studentName?.trim(),
@@ -161,13 +158,13 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
       }
 
       if (editingId) {
-        await fetch(`${apiUrl}/admissions/${editingId}`, {
+        await fetch(`${API_URL}/admissions/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(cleanedData)
         });
       } else {
-        await fetch(`${apiUrl}/admissions`, {
+        await fetch(`${API_URL}/admissions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(cleanedData)
@@ -184,8 +181,7 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
   const handleDeleteApplication = async (id: string) => {
     if (confirm('Are you sure you want to delete this application?')) {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-        await fetch(`${apiUrl}/admissions/${id}`, {
+        await fetch(`${API_URL}/admissions/${id}`, {
           method: 'DELETE'
         })
         fetchAdmissions()
@@ -307,7 +303,7 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
                           Add Application
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-md">
+                      <DialogContent className="max-w-md text-foreground">
                         <DialogHeader>
                           <DialogTitle>
                             {editingId ? 'Edit Application' : 'Add New Application'}

@@ -12,7 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, ChevronDown, Menu, Edit2 } from 'lucide-react';
+import { Search, Filter, ChevronDown, Menu, Edit2, Zap, Send, TrendingUp } from 'lucide-react';
+import { generateSmartReply, Sentiment } from '@/lib/ai-utils';
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,6 +29,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import Sidebar from '@/components/dashboard/Sidebar';
 import CEOSidebar from '@/components/dashboard/CEOSidebar';
+import { API_URL } from '@/lib/api-config'
+import { useToast } from '@/components/ui/use-toast';
 
 interface ParentQuery {
   _id: string;
@@ -59,6 +62,10 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
   const [openDialog, setOpenDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<ParentQuery>>({});
+  const [smartReplyDraft, setSmartReplyDraft] = useState('');
+  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
+  const [activeAiQuery, setActiveAiQuery] = useState<ParentQuery | null>(null);
+  const { toast } = useToast();
 
   // Detect user role from localStorage
   const [userRole, setUserRole] = useState<string>('admin');
@@ -75,7 +82,7 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
   const fetchQueries = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/queries', {
+      const response = await fetch(`${API_URL}/queries`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -127,7 +134,7 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
     try {
       if (editingId) {
         const token = localStorage.getItem('token')
-        await fetch(`http://localhost:5000/api/queries/${editingId}`, {
+        await fetch(`${API_URL}/queries/${editingId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -143,6 +150,8 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
       }
       fetchQueries();
       setOpenDialog(false);
+      setIsAiDialogOpen(false);
+      setActiveAiQuery(null);
     } catch (error) {
       console.error('Error updating query:', error);
       alert('Error updating query');
@@ -153,7 +162,7 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
     if (confirm('Are you sure you want to delete this query?')) {
       try {
         const token = localStorage.getItem('token')
-        await fetch(`http://localhost:5000/api/queries/${id}`, {
+        await fetch(`${API_URL}/queries/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -164,6 +173,25 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
         console.error('Error deleting query:', error)
       }
     }
+  }
+
+  const handleAiSmartReply = (query: ParentQuery) => {
+    const sentiment = (query as any).sentiment || 'Neutral'
+    const draft = generateSmartReply(query.subject, query.message, sentiment as Sentiment)
+    setSmartReplyDraft(draft)
+    setActiveAiQuery(query)
+    setIsAiDialogOpen(true)
+  }
+
+  const handleApplyAiDraft = () => {
+    setFormData({ ...formData, response: smartReplyDraft })
+    setIsAiDialogOpen(false)
+    setOpenDialog(true)
+    toast({
+      title: "Tactical Draft Applied",
+      description: "AI response has been successfully sent to the editor.",
+      className: "bg-slate-900 border-primary/20 text-white font-bold",
+    })
   }
 
   const getStatusColor = (status: string) => {
@@ -363,16 +391,17 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
                       >
                         <div className="border border-border rounded-lg overflow-hidden">
                           <CollapsibleTrigger asChild>
-                            <button className="w-full p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors">
+                            <button className="w-full p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors text-foreground">
                               <div className="flex-1 text-left">
                                 <div className="flex items-center gap-3 mb-2">
-                                  <h3 className="font-semibold text-foreground">{query.subject}</h3>
+                                  <h3 className="font-semibold">{query.subject}</h3>
                                   <Badge className={getStatusColor(query.status)}>
                                     {query.status}
                                   </Badge>
                                   <Badge className={getPriorityColor(query.priority)}>
                                     {query.priority}
                                   </Badge>
+                                  <Zap className="h-4 w-4 text-primary animate-pulse" />
                                 </div>
                                 <div className="text-sm text-muted-foreground">
                                   {query.parentName} • {query.studentName}
@@ -386,102 +415,113 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
                           </CollapsibleTrigger>
                           <CollapsibleContent className="border-t border-border bg-secondary/30 p-4">
                             <div className="space-y-3">
-                              {userRole !== 'ceo' && (
-                                <div className="flex justify-end gap-2 mb-4">
-                                  <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-                                    <DialogTrigger asChild>
-                                      <Button size="sm" variant="outline" onClick={() => handleEditQuery(query)}>
-                                        <Edit2 className="h-4 w-4 mr-1" />
-                                        Edit Status
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-md">
-                                      <DialogHeader>
-                                        <DialogTitle>Edit Query Status</DialogTitle>
-                                      </DialogHeader>
-                                      <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                            <label className="text-sm font-medium text-foreground">Status</label>
-                                            <Select value={formData.status || 'Open'} onValueChange={(value) => setFormData({ ...formData, status: value as any })}>
-                                              <SelectTrigger>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {statuses.map(status => (
-                                                  <SelectItem key={status} value={status}>{status}</SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div>
-                                            <label className="text-sm font-medium text-foreground">Priority</label>
-                                            <Select value={formData.priority || 'Medium'} onValueChange={(value) => setFormData({ ...formData, priority: value as any })}>
-                                              <SelectTrigger>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {priorities.map(priority => (
-                                                  <SelectItem key={priority} value={priority}>{priority}</SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        </div>
-                                        <div>
-                                          <label className="text-sm font-medium text-foreground">Response</label>
-                                          <Textarea
-                                            value={formData.response || ''}
-                                            onChange={(e) => setFormData({ ...formData, response: e.target.value })}
-                                            placeholder="Response to the query"
-                                            className="min-h-24"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="text-sm font-medium text-foreground">Assigned To</label>
-                                          <Input
-                                            value={formData.assignedTo || ''}
-                                            onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                                            placeholder="Staff member assigned"
-                                          />
-                                        </div>
-                                        <Button onClick={handleSave} className="w-full">
-                                          Update Query
+                              <div className="flex justify-end gap-2 mb-4">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
+                                  onClick={() => handleAiSmartReply(query)}
+                                >
+                                  <Zap className="h-4 w-4 mr-1" />
+                                  Smart Reply
+                                </Button>
+                                {userRole !== 'ceo' && (
+                                  <>
+                                    <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+                                      <DialogTrigger asChild>
+                                        <Button size="sm" variant="outline" onClick={() => handleEditQuery(query)}>
+                                          <Edit2 className="h-4 w-4 mr-1" />
+                                          Edit Status
                                         </Button>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                  <Button size="sm" variant="destructive" onClick={() => handleDeleteQuery(query._id)}>
-                                    Delete
-                                  </Button>
-                                </div>
-                              )}
-                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                      </DialogTrigger>
+                                      <DialogContent className="max-w-md text-foreground">
+                                        <DialogHeader>
+                                          <DialogTitle>Edit Query Status</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="space-y-4">
+                                          <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                              <label className="text-sm font-medium text-foreground">Status</label>
+                                              <Select value={formData.status || 'Open'} onValueChange={(value) => setFormData({ ...formData, status: value as any })}>
+                                                <SelectTrigger>
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {statuses.map(status => (
+                                                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                            <div>
+                                              <label className="text-sm font-medium text-foreground">Priority</label>
+                                              <Select value={formData.priority || 'Medium'} onValueChange={(value) => setFormData({ ...formData, priority: value as any })}>
+                                                <SelectTrigger>
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {priorities.map(priority => (
+                                                    <SelectItem key={priority} value={priority}>{priority}</SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <label className="text-sm font-medium text-foreground">Response</label>
+                                            <Textarea
+                                              value={formData.response || ''}
+                                              onChange={(e) => setFormData({ ...formData, response: e.target.value })}
+                                              placeholder="Response to the query"
+                                              className="min-h-24"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="text-sm font-medium text-foreground">Assigned To</label>
+                                            <Input
+                                              value={formData.assignedTo || ''}
+                                              onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+                                              placeholder="Staff member assigned"
+                                            />
+                                          </div>
+                                          <Button onClick={handleSave} className="w-full">
+                                            Update Query
+                                          </Button>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                    <Button size="sm" variant="destructive" onClick={() => handleDeleteQuery(query._id)}>
+                                      Delete
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 text-sm text-foreground">
                                 <div>
                                   <div className="text-muted-foreground mb-1">Parent Email</div>
-                                  <div className="text-foreground">{query.email}</div>
+                                  <div>{query.email}</div>
                                 </div>
                                 <div>
                                   <div className="text-muted-foreground mb-1">Phone</div>
-                                  <div className="text-foreground">{query.phone}</div>
+                                  <div>{query.phone}</div>
                                 </div>
                                 <div>
                                   <div className="text-muted-foreground mb-1">Date Submitted</div>
-                                  <div className="text-foreground">{new Date(query.createdAt).toLocaleDateString()}</div>
+                                  <div>{new Date(query.createdAt).toLocaleDateString()}</div>
                                 </div>
                                 <div>
                                   <div className="text-muted-foreground mb-1">Student</div>
-                                  <div className="text-foreground">{query.studentName}</div>
+                                  <div>{query.studentName}</div>
                                 </div>
                               </div>
                               <div>
                                 <div className="text-muted-foreground mb-2 text-sm">Message</div>
-                                <p className="text-foreground text-sm leading-relaxed">{query.message}</p>
+                                <p className="text-sm leading-relaxed text-foreground">{query.message}</p>
                               </div>
                               {query.response && (
                                 <div>
                                   <div className="text-muted-foreground mb-2 text-sm">Response</div>
-                                  <p className="text-foreground text-sm leading-relaxed bg-green-50 p-3 rounded">{query.response}</p>
+                                  <p className="text-sm leading-relaxed text-slate-900 bg-green-50 p-3 rounded">{query.response}</p>
                                 </div>
                               )}
                             </div>
@@ -499,6 +539,48 @@ export default function ParentQueriesManagementPage({ onNavigate }: ParentQuerie
             </Card>
           </div>
         </div>
+
+        {/* AI Smart Reply Dialog */}
+        <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
+          <DialogContent className="max-w-2xl bg-slate-900 border-white/10 text-white rounded-[2rem]">
+            <DialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <Zap className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-black uppercase italic tracking-tighter">AI Tactical Drafting</DialogTitle>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantum Engine: Generating Response</p>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="space-y-6 pt-4">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Parent Inquiry</p>
+                <p className="text-xs font-bold text-slate-300 italic">"{activeAiQuery?.message}"</p>
+              </div>
+              <div className="space-y-2">
+                <div className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                  Generated Draft <Badge className="bg-primary/20 text-primary border-none text-[8px]">{(activeAiQuery as any)?.sentiment || 'Neutral'}</Badge>
+                </div>
+                <Textarea 
+                  value={smartReplyDraft}
+                  onChange={(e) => setSmartReplyDraft(e.target.value)}
+                  className="min-h-[150px] bg-slate-950 border-white/10 rounded-2xl text-xs font-medium leading-relaxed text-white"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="ghost" onClick={() => setIsAiDialogOpen(false)} className="rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400">Discard</Button>
+                <Button 
+                  onClick={handleApplyAiDraft}
+                  className="rounded-xl bg-primary hover:bg-primary/80 transition-all text-[10px] font-black uppercase tracking-widest gap-2"
+                >
+                  <TrendingUp className="w-3 h-3" /> Apply to Response
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

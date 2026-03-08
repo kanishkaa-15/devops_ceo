@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { PieChart, Pie, Cell, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { Users, UserCheck, UserX, Briefcase, PieChart as PieIcon, BarChart3, Loader2, ChevronRight } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { API_URL } from '@/lib/api-config'
 
 export default function StaffDetails() {
   const [staffData, setStaffData] = useState<any[]>([])
@@ -17,7 +18,7 @@ export default function StaffDetails() {
   const fetchStaffData = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/staff', {
+      const response = await fetch(`${API_URL}/staff`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

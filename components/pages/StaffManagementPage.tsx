@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { API_URL } from '@/lib/api-config'
 
 const DEPARTMENTS = ['Mathematics', 'English', 'Science', 'Social Studies', 'Languages', 'Physical Education', 'Arts', 'Technology', 'Administration', 'Support Staff', 'Special Education'];
 const POSITIONS = ['Teacher', 'Senior Teacher', 'Department Head', 'Lab Coordinator', 'Counselor', 'Administrator', 'Principal', 'Vice Principal', 'IT Coordinator', 'Librarian', 'Maintenance Supervisor'];
@@ -79,7 +80,7 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
   const fetchStaff = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/staff', {
+      const response = await fetch(`${API_URL}/staff`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -147,7 +148,7 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
     try {
       const token = localStorage.getItem('token')
       if (editingId) {
-        const response = await fetch(`http://localhost:5000/api/staff/${editingId}`, {
+        const response = await fetch(`${API_URL}/staff/${editingId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -157,7 +158,7 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
         });
         if (!response.ok) throw new Error('Failed to update staff');
       } else {
-        const response = await fetch('http://localhost:5000/api/staff', {
+        const response = await fetch(`${API_URL}/staff`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -179,7 +180,7 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
     if (confirm('Are you sure you want to delete this staff member?')) {
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch(`http://localhost:5000/api/staff/${id}`, {
+        const response = await fetch(`${API_URL}/staff/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -231,7 +232,7 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
         />
       )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden text-foreground">
         <header className="bg-background border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -243,7 +244,7 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
               >
                 <Menu className="h-5 w-5" />
               </Button>
-              <h1 className="text-2xl font-bold text-foreground">Staff Management</h1>
+              <h1 className="text-2xl font-bold">Staff Management</h1>
             </div>
           </div>
         </header>
@@ -271,7 +272,7 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
                             Add Staff
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-md">
+                        <DialogContent className="max-w-md text-foreground">
                           <DialogHeader>
                             <DialogTitle>
                               {editingId ? 'Edit Staff Member' : 'Add New Staff Member'}
@@ -370,7 +371,7 @@ export default function StaffManagementPage({ onNavigate }: StaffManagementPageP
                     <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                     <Input
                       placeholder="Search by name, email, or position..."
-                      className="pl-10"
+                      className="pl-10 text-foreground"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />

@@ -25,10 +25,32 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
+// Helper function for simple sentiment analysis
+const calculateSentiment = (text) => {
+  const negativeWords = ['bad', 'error', 'issue', 'problem', 'fail', 'concern', 'disappointed', 'late', 'rude', 'missing', 'broke', 'broken', 'poor', 'worst', 'unhappy', 'not good'];
+  const positiveWords = ['great', 'good', 'excellent', 'happy', 'thanks', 'thank you', 'amazing', 'perfect', 'love', 'best', 'satisfied', 'wonderful', 'appreciate'];
+  
+  const lowerText = text.toLowerCase();
+  let score = 0;
+  
+  negativeWords.forEach(word => { if (lowerText.includes(word)) score--; });
+  positiveWords.forEach(word => { if (lowerText.includes(word)) score++; });
+  
+  if (score < 0) return 'Concerned';
+  if (score > 0) return 'Positive';
+  return 'Neutral';
+};
+
 // POST new query
 router.post('/', async (req, res) => {
   try {
-    const query = new Query(req.body);
+    const { subject, message } = req.body;
+    const sentiment = calculateSentiment(`${subject} ${message}`);
+    
+    const query = new Query({
+      ...req.body,
+      sentiment
+    });
     await query.save();
 
     // Emit real-time event

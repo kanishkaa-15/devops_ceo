@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { io } from 'socket.io-client'
+import { API_URL, SOCKET_URL } from '@/lib/api-config'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -124,16 +125,14 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
       const currentClass = isStaff ? (user.activeClass || user.assignedClass || selectedClass) : selectedClass
       const currentSection = isStaff ? (user.activeSection || user.assignedSection || selectedSection) : selectedSection
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-
       const token = localStorage.getItem('token')
       const headers = { 'Authorization': `Bearer ${token}` }
 
       const [studentRes, riskRes, gradeRes, attendanceRes] = await Promise.all([
-        fetch(`${apiUrl}/admissions?status=Approved&grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers }),
-        fetch(`${apiUrl}/analytics/predictions/risk-assessment`, { headers }),
-        fetch(`${apiUrl}/grades?grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers }),
-        fetch(`${apiUrl}/attendance?grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers })
+        fetch(`${API_URL}/admissions?status=Approved&grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers }),
+        fetch(`${API_URL}/analytics/predictions/risk-assessment`, { headers }),
+        fetch(`${API_URL}/grades?grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers }),
+        fetch(`${API_URL}/attendance?grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers })
       ])
 
       const studentData = await studentRes.json()
@@ -168,7 +167,7 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
 
   // Socket.io Connection for Real-time Staff Dashboard
   useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000')
+    const socket = io(SOCKET_URL)
 
     socket.on('connect', () => {
       console.log('Staff Portal: Neural Link Established')
@@ -207,6 +206,10 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
 
     socket.on('newAdmission', handleAdmissionEvent)
     socket.on('updateAdmission', handleAdmissionEvent)
+    socket.on('gradesUpdated', () => {
+      console.log('Staff Portal: Grades updated via Excel, refreshing...')
+      setRefreshTrigger(prev => prev + 1)
+    })
     socket.on('deleteAdmission', (data: any) => {
       if (data?.id) {
         setRecentStudentIds(prev => {
@@ -267,9 +270,8 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
     })
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
       const token = localStorage.getItem('token')
-      const res = await fetch(`${apiUrl}/attendance/bulk`, {
+      const res = await fetch(`${API_URL}/attendance/bulk`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -303,9 +305,8 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
 
     setSaving(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
       const token = localStorage.getItem('token')
-      const res = await fetch(`${apiUrl}/excel/upload`, {
+      const res = await fetch(`${API_URL}/excel/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -341,8 +342,7 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
       const token = localStorage.getItem('token')
       const headers = { 'Authorization': `Bearer ${token}` }
       // Fetch full admission details to edit
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-      const res = await fetch(`${apiUrl}/admissions?studentName=${encodeURIComponent(student.studentName)}`, { headers })
+      const res = await fetch(`${API_URL}/admissions?studentName=${encodeURIComponent(student.studentName)}`, { headers })
       const data = await res.json()
       
       const fullDetails = Array.isArray(data) ? data.find((d: any) => d.studentName === student.studentName) : null
@@ -362,9 +362,8 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
     if (!selectedStudent || !studentFormData._id) return
     setUpdatingStudent(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
       const token = localStorage.getItem('token')
-      const response = await fetch(`${apiUrl}/admissions/${studentFormData._id}`, {
+      const response = await fetch(`${API_URL}/admissions/${studentFormData._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -573,7 +572,7 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
                         <TableHeader className="bg-slate-50 dark:bg-slate-900/50">
                           <TableRow className="hover:bg-transparent border-slate-200 dark:border-slate-800">
                             <TableHead className="py-4 text-[10px] font-black uppercase text-slate-400 tracking-wider">Student Profile</TableHead>
-                            <TableHead className="py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-wider">Academic Risk</TableHead>
+                            <TableHead className="py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-wider">Attendance Risk</TableHead>
                             {SUBJECTS.map(sub => (
                               <TableHead key={sub} className="py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-wider font-bold">{sub}</TableHead>
                             ))}

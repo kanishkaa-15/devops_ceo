@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { motion } from 'framer-motion'
+import { API_URL } from '@/lib/api-config'
 
 const retentionTrends = [
   { month: 'Jan', retention: 97.5, attrition: 2.5, risk: 1.8 },
@@ -42,7 +43,7 @@ export default function RetentionAttritionAnalytics() {
     const fetchRiskData = async () => {
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch('http://localhost:5000/api/analytics/predictions/risk-assessment', {
+        const response = await fetch(`${API_URL}/analytics/predictions/risk-assessment`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

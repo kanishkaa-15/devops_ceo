@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { motion } from 'framer-motion'
 import { Megaphone, Bell, Loader2 } from 'lucide-react'
+import { API_URL } from '@/lib/api-config'
 
 export default function SchoolAnnouncements() {
     const [announcements, setAnnouncements] = useState<any[]>([])
@@ -13,7 +14,7 @@ export default function SchoolAnnouncements() {
     useEffect(() => {
         const fetchAnnouncements = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/announcements?type=Update')
+                const response = await fetch(`${API_URL}/announcements?type=Update`)
                 const data = await response.json()
                 setAnnouncements(data)
             } catch (error) {

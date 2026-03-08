@@ -13,6 +13,7 @@ import {
     ArrowUpRight,
     Loader2
 } from 'lucide-react'
+import { API_URL } from '@/lib/api-config'
 
 export default function StudentDetailedPerformance({ studentName, studentId }: { studentName: string, studentId?: string }) {
     const [attendance, setAttendance] = useState<any[]>([])
@@ -27,7 +28,7 @@ export default function StudentDetailedPerformance({ studentName, studentId }: {
                 const encodedIdentifier = encodeURIComponent(identifier)
                 const isId = !!studentId
 
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+                const apiUrl = API_URL
                 const token = localStorage.getItem('token')
 
                 // Construct endpoints based on whether we have an ID or Name

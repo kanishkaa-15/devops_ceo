@@ -21,6 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Plus, Edit2, Trash2, Menu, Users } from 'lucide-react'
 import Sidebar from '@/components/dashboard/Sidebar'
+import { API_URL } from '@/lib/api-config'
 
 interface StaffMember {
   _id: string
@@ -62,7 +63,7 @@ export default function AdminStaffManagementPage({ onNavigate }: AdminStaffManag
   const fetchStaff = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/staff', {
+      const response = await fetch(`${API_URL}/staff`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -127,7 +128,7 @@ export default function AdminStaffManagementPage({ onNavigate }: AdminStaffManag
     try {
       const token = localStorage.getItem('token')
       if (editingId) {
-        await fetch(`http://localhost:5000/api/staff/${editingId}`, {
+        await fetch(`${API_URL}/staff/${editingId}`, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
@@ -136,7 +137,7 @@ export default function AdminStaffManagementPage({ onNavigate }: AdminStaffManag
           body: JSON.stringify(formData)
         })
       } else {
-        await fetch('http://localhost:5000/api/staff', {
+        await fetch(`${API_URL}/staff`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -157,7 +158,7 @@ export default function AdminStaffManagementPage({ onNavigate }: AdminStaffManag
     if (confirm('Are you sure you want to delete this staff member?')) {
       try {
         const token = localStorage.getItem('token')
-        await fetch(`http://localhost:5000/api/staff/${id}`, {
+        await fetch(`${API_URL}/staff/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`

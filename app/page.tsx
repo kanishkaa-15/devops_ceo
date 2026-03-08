@@ -16,6 +16,7 @@ import StaffDashboardPage from '@/components/pages/StaffDashboardPage'
 import StudentPerformancePage from '@/components/pages/StudentPerformancePage'
 import ClassDetailsPage from '@/components/pages/ClassDetailsPage'
 import ParentDashboardPage from '@/components/pages/ParentDashboardPage'
+import { API_URL } from '@/lib/api-config'
 
 type PageType = 'signup' | 'login' | 'dashboard' | 'staff' | 'admissions' | 'queries' | 'admin' | 'admin-staff' | 'admin-admissions' | 'admin-queries' | 'admin-staff-management' | 'staff-dashboard' | 'student-performance' | 'class-details' | 'parent-dashboard'
 
@@ -37,7 +38,7 @@ export default function Home() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+      const apiUrl = API_URL
       const response = await fetch(`${apiUrl}/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`

@@ -43,6 +43,7 @@ import {
 } from 'recharts'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { API_URL } from '@/lib/api-config'
 
 interface ParentDashboardProps {
   onLogout: () => void
@@ -93,9 +94,8 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
   const fetchParentStudents = async (parentIdentifier: string, preSelectedId?: string) => {
     try {
       setLoading(true)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
       const token = localStorage.getItem('token')
-      const response = await fetch(`${apiUrl}/admissions/parent/${encodeURIComponent(parentIdentifier)}`, {
+      const response = await fetch(`${API_URL}/admissions/parent/${encodeURIComponent(parentIdentifier)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -135,10 +135,9 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
   const fetchPerformanceData = async (identifier: string, isId: boolean = false) => {
     if (!identifier) return
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
       const endpoint = isId ? `grades/id/${identifier}` : `grades/${encodeURIComponent(identifier)}`
       const token = localStorage.getItem('token')
-      const response = await fetch(`${apiUrl}/${endpoint}`, {
+      const response = await fetch(`${API_URL}/${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -183,7 +182,7 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
       }
 
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/queries', {
+      const response = await fetch(`${API_URL}/queries`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -240,7 +239,6 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
   const handleDownloadReport = async (reportTitle: string) => {
     try {
       const doc = new jsPDF()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
       const identifier = selectedStudent?.studentId || selectedStudent?.studentName
       const isId = !!selectedStudent?.studentId
 
@@ -249,8 +247,8 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
       const headers = { 'Authorization': `Bearer ${token}` }
 
       const [attendanceRes, gradesRes] = await Promise.all([
-        fetch(isId ? `${apiUrl}/attendance/id/${identifier}` : `${apiUrl}/attendance/${encodeURIComponent(identifier)}`, { headers }),
-        fetch(isId ? `${apiUrl}/grades/id/${identifier}` : `${apiUrl}/grades/${encodeURIComponent(identifier)}`, { headers })
+        fetch(isId ? `${API_URL}/attendance/id/${identifier}` : `${API_URL}/attendance/${encodeURIComponent(identifier)}`, { headers }),
+        fetch(isId ? `${API_URL}/grades/id/${identifier}` : `${API_URL}/grades/${encodeURIComponent(identifier)}`, { headers })
       ])
 
       const attendanceData = await attendanceRes.json()

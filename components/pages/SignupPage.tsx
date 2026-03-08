@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { GraduationCap } from 'lucide-react'
+import { API_URL } from '@/lib/api-config'
 
 interface SignupPageProps {
   onNavigateToLogin: () => void
@@ -84,7 +85,7 @@ export default function SignupPage({ onNavigateToLogin }: SignupPageProps) {
     e.preventDefault()
     if (validateForm()) {
       try {
-        const response = await fetch('http://localhost:5000/api/auth/register', {
+        const response = await fetch(`${API_URL}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

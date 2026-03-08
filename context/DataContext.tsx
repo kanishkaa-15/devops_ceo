@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { io } from 'socket.io-client'
+import { API_URL, SOCKET_URL } from '@/lib/api-config'
 
 export interface StaffMember {
   id: string
@@ -72,15 +73,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // 1. Initial REST API Fetch
     const fetchInitialData = async () => {
       try {
-        // Fallback for Next.js SSR vs Client rendering differences
-        const apiUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-          ? 'http://localhost:5000/api'
-          : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-
         const [staffRes, admissionsRes, queriesRes] = await Promise.all([
-          fetch(`${apiUrl}/staff`).catch(e => { console.warn('Staff fetch failed', e); return null }),
-          fetch(`${apiUrl}/admissions`).catch(e => { console.warn('Admissions fetch failed', e); return null }),
-          fetch(`${apiUrl}/queries`).catch(e => { console.warn('Queries fetch failed', e); return null })
+          fetch(`${API_URL}/staff`).catch(e => { console.warn('Staff fetch failed', e); return null }),
+          fetch(`${API_URL}/admissions`).catch(e => { console.warn('Admissions fetch failed', e); return null }),
+          fetch(`${API_URL}/queries`).catch(e => { console.warn('Queries fetch failed', e); return null })
         ])
 
         if (staffRes?.ok) {
@@ -103,7 +99,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     fetchInitialData()
 
     // 2. Telemetry Real-time Hook (Socket.io)
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000')
+    const socket = io(SOCKET_URL)
 
     socket.on('newQuery', (newQuery: ParentQuery) => {
       console.log('Real-Time Context: Received newQuery payload from quantum link')

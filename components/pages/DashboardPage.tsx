@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useData } from '@/context/DataContext'
+import { SOCKET_URL } from '@/lib/api-config'
 
 import AdmissionsAnalytics from '@/components/dashboard/AdmissionsAnalytics'
 import StaffDetails from '@/components/dashboard/StaffDetails'
@@ -36,6 +37,10 @@ import TeachingEffectiveness from '@/components/dashboard/TeachingEffectiveness'
 import StudentPerformanceOverview from '@/components/dashboard/StudentPerformanceOverview'
 import Achievements from '@/components/dashboard/Achievements'
 import StudentAchievements from '@/components/dashboard/StudentAchievements'
+import SentimentPulse from '@/components/dashboard/SentimentPulse'
+import StrategicRadar from '@/components/dashboard/StrategicRadar'
+import AIInsights from '@/components/dashboard/AIInsights'
+import EnrollmentForecast from '@/components/dashboard/EnrollmentForecast'
 
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -62,12 +67,12 @@ export default function DashboardPage({ onLogout, onNavigate }: DashboardPagePro
   const [drillDownType, setDrillDownType] = useState<'students' | 'staff' | 'admissions' | 'queries' | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [widgetOrder, setWidgetOrder] = useState(['health', 'growth', 'retention', 'trust', 'teaching', 'performance', 'student-achievements', 'operations', 'school-achievements', 'feedback'])
+  const [widgetOrder, setWidgetOrder] = useState(['health', 'ai-briefing', 'growth-forecast', 'retention', 'trust', 'teaching', 'performance', 'student-achievements', 'operations', 'school-achievements', 'feedback', 'sentiment'])
   const [healthData, setHealthData] = useState<any>(null)
 
   useEffect(() => {
     // Socket.io Connection
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000')
+    const socket = io(SOCKET_URL)
 
     socket.on('connect', () => {
       console.log('Quantum Link Synchronized')
@@ -165,25 +170,59 @@ export default function DashboardPage({ onLogout, onNavigate }: DashboardPagePro
       case 'health':
         return (
           <section key="health" className="space-y-6">
-            <div className="flex items-center justify-between px-2">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-4">
                 <div className="w-1.5 h-10 bg-primary rounded-full shadow-[0_0_15px_rgba(56,189,248,0.5)]" />
                 <div>
-                  <h3 className="text-2xl font-black tracking-tighter text-foreground uppercase italic px-1">Institutional Vitality</h3>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60">Real-time health telemetry</p>
+                  <h3 className="text-2xl font-black tracking-tighter text-foreground uppercase italic leading-none">Institutional Vitality</h3>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60 mt-1">Real-time health telemetry</p>
                 </div>
               </div>
               <Button variant="ghost" size="sm" className="rounded-xl gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all">
                 Full Telemetry <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-            <div className="grid gap-8 lg:grid-cols-2">
+            <div className="grid gap-8 lg:grid-cols-2 items-start">
               <InstitutionalHealthIndex onDataLoad={setHealthData} />
-              <LearningOutcomeGrowth />
+              <div className="space-y-8">
+                <StrategicRadar data={healthData?.currentHealth} />
+                <SentimentPulse queries={queries} />
+              </div>
             </div>
           </section>
         )
       case 'growth': return null // Combined in health for layout
+      case 'ai-briefing':
+        return (
+          <section key="ai-briefing" className="space-y-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-1.5 h-10 bg-slate-900 rounded-full" />
+              <div>
+                <h3 className="text-2xl font-black tracking-tighter text-foreground uppercase italic leading-none">Tactical Oversight</h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60 mt-1">AI Anomalies & Insights</p>
+              </div>
+            </div>
+            <AIInsights stats={{
+              attendanceRiskCount: 8, // Mocked based on current system data
+              enrollmentGrowth: 18,
+              pendingQueries: queries.filter(q => q.status === 'Open').length,
+              sentimentTrend: 'Improving'
+            }} />
+          </section>
+        )
+      case 'growth-forecast':
+        return (
+          <section key="growth-forecast" className="space-y-6 px-2">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-1.5 h-10 bg-emerald-500 rounded-full" />
+              <div>
+                <h3 className="text-2xl font-black tracking-tighter text-foreground uppercase italic leading-none">Enrollment Projection</h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60 mt-1">Predictive growth vectors</p>
+              </div>
+            </div>
+            <EnrollmentForecast currentAdmissions={admissions.filter(a => a.status === 'Pending').length} totalStudents={studentsCount} />
+          </section>
+        )
       case 'retention':
         return (
           <section key="retention" className="space-y-6">
@@ -272,6 +311,8 @@ export default function DashboardPage({ onLogout, onNavigate }: DashboardPagePro
             <ParentQueries />
           </section>
         )
+      case 'sentiment':
+        return null // Integrated in health section for layout symmetry
       default: return null
     }
   }

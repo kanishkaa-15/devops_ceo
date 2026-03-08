@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { ArrowUp, Loader2, ClipboardCheck, Clock, XCircle, BarChart3, TrendingUp } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { API_URL } from '@/lib/api-config'
 
 export default function AdmissionsAnalytics() {
   const [data, setData] = useState<any>(null)
@@ -16,7 +17,7 @@ export default function AdmissionsAnalytics() {
   const fetchAdmissionsData = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/analytics/admissions', {
+      const response = await fetch(`${API_URL}/analytics/admissions`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
