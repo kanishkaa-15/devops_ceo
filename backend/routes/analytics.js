@@ -237,13 +237,23 @@ router.get('/parent-trust', protect, rbac(['ceo', 'admin']), async (req, res) =>
 // GET automated risk assessment for all approved students (Protected)
 router.get('/predictions/risk-assessment', protect, rbac(['ceo', 'admin', 'staff']), async (req, res) => {
   try {
-    const students = await Admission.find({ status: 'Approved' }).select('studentName grade');
+    const { grade, section } = req.query;
+    
+    // Build query based on optional filters
+    const query = { status: 'Approved' };
+    if (grade) query.grade = grade;
+    if (section) query.section = section;
+
+    const students = await Admission.find(query).select('studentId studentName grade section');
 
     const riskAssessments = await Promise.all(students.map(async (student) => {
-      const riskScore = await calculateStudentRisk(student.studentName);
+      // Use studentId for better accuracy, fallback to name if ID is missing
+      const riskScore = await calculateStudentRisk(student.studentId || student.studentName);
       return {
+        studentId: student.studentId,
         studentName: student.studentName,
         grade: student.grade,
+        section: student.section,
         riskScore,
         status: riskScore > 70 ? 'High' : riskScore > 40 ? 'Medium' : 'Low'
       };
@@ -256,14 +266,14 @@ router.get('/predictions/risk-assessment', protect, rbac(['ceo', 'admin', 'staff
 });
 
 // GET grade projection for a specific student (Protected)
-router.get('/predictions/grade-projection/:studentName', protect, async (req, res) => {
+router.get('/predictions/grade-projection/:id', protect, async (req, res) => {
   try {
-    const studentName = req.params.studentName;
+    const id = req.params.id; // This is studentId
 
     // Security check for parents
     if (req.user.role === 'parent') {
       const isAssigned = await Admission.findOne({
-        studentName: { $regex: new RegExp(studentName, 'i') },
+        studentId: id,
         $or: [
           { parentName: { $regex: new RegExp(req.user.name, 'i') } },
           { email: { $regex: new RegExp(req.user.email, 'i') } }
@@ -274,7 +284,7 @@ router.get('/predictions/grade-projection/:studentName', protect, async (req, re
       }
     }
 
-    const projection = await projectAcademicOutcome(studentName);
+    const projection = await projectAcademicOutcome(id);
     if (!projection) return res.status(404).json({ message: 'Insufficient data for projection' });
     res.json(projection);
   } catch (error) {

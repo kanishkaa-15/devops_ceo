@@ -53,15 +53,25 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST new admission
-router.post('/', async (req, res) => {
+// POST new admission (Protected)
+router.post('/', protect, async (req, res) => {
   try {
     const admissionData = { ...req.body };
 
     // Auto-generate studentId if not provided
     if (!admissionData.studentId) {
-      const count = await Admission.countDocuments();
-      admissionData.studentId = `STU${9000 + count + 1}`;
+      // Find the highest studentId to avoid collisions after deletion
+      const admissions = await Admission.find({}, { studentId: 1 });
+      let maxNum = 9000;
+      admissions.forEach(a => {
+        if (a.studentId && typeof a.studentId === 'string' && a.studentId.startsWith('STU')) {
+          const num = parseInt(a.studentId.substring(3));
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      });
+      admissionData.studentId = `STU${maxNum + 1}`;
     }
 
     const admission = new Admission(admissionData);
@@ -79,8 +89,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT update admission
-router.put('/:id', async (req, res) => {
+// PUT update admission (Protected)
+router.put('/:id', protect, async (req, res) => {
   try {
     const admission = await Admission.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!admission) return res.status(404).json({ message: 'Admission not found' });
@@ -98,8 +108,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE admission
-router.delete('/:id', async (req, res) => {
+// DELETE admission (Protected)
+router.delete('/:id', protect, async (req, res) => {
   try {
     const admission = await Admission.findByIdAndDelete(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Admission not found' });

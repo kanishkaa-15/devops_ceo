@@ -70,6 +70,13 @@ router.put('/:id', protect, rbac(['ceo', 'admin']), async (req, res) => {
   try {
     const query = await Query.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!query) return res.status(404).json({ message: 'Query not found' });
+    
+    // Emit real-time update event
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('updateQuery', query);
+    }
+
     res.json(query);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

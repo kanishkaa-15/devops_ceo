@@ -7,6 +7,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import {
   GraduationCap,
   LogOut,
   MessageSquare,
@@ -22,7 +29,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useData } from '@/context/DataContext'
+import { useData, ParentQuery } from '@/context/DataContext'
 import { useToast } from '@/hooks/use-toast'
 import StudentDetailedPerformance from '@/components/dashboard/StudentDetailedPerformance'
 import SchoolAnnouncements from '@/components/dashboard/SchoolAnnouncements'
@@ -63,9 +70,15 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
     message: '',
     priority: 'Medium'
   })
+  const [selectedTicket, setSelectedTicket] = useState<ParentQuery | null>(null)
 
   // Derive this parent's specific queries from the global context
-  const queries = globalQueries.filter(q => q.studentName === studentName)
+  // Use case-insensitive matching and check email for robustness
+  const queries = globalQueries.filter(q => {
+    const nameMatch = q.studentName?.toLowerCase() === studentName?.toLowerCase()
+    const emailMatch = q.email?.toLowerCase() === (localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).email?.toLowerCase() : '')
+    return nameMatch || emailMatch
+  })
 
   useEffect(() => {
     const user = localStorage.getItem('user')
@@ -77,7 +90,7 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
         // Use student selected during login
         const student = {
           studentId: userData.activeStudentId,
-          studentName: userData.activeStudentName || userData.name
+          studentName: userData.activeStudentName || '' // Don't fallback to parent name here
         }
         setSelectedStudent(student)
         setStudentName(student.studentName)
@@ -172,7 +185,7 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
 
       const payload = {
         parentName: user.name,
-        studentName: user.studentName,
+        studentName: selectedStudent?.studentName || studentName,
         email: user.email,
         phone: 'N/A',
         subject: newQuery.subject,
@@ -724,23 +737,28 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
                       </div>
                       <h3 className="font-bold text-foreground text-sm mb-2 group-hover:text-primary transition-colors">{query.subject}</h3>
                       <p className="text-xs text-muted-foreground line-clamp-2 font-medium mb-4 italic opacity-80">"{query.message}"</p>
-                      <div className="flex items-center justify-between border-t border-border/30 pt-4">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[9px] font-black text-muted-foreground uppercase">{new Date(query.createdAt).toLocaleDateString()}</span>
+                        <div className="flex items-center justify-between border-t border-border/30 pt-4">
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-[9px] font-black text-muted-foreground uppercase">{new Date(query.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setSelectedTicket(query)}
+                            className="h-7 px-2 text-[9px] font-black text-primary uppercase tracking-widest hover:bg-primary/5 transition-all flex items-center gap-1"
+                          >
+                            View Details
+                            <ArrowRight className="w-3 h-3" />
+                          </Button>
                         </div>
-                        <button className="text-[9px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                          View Details
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
-                      </div>
 
                       {query.response && (
-                        <div className="mt-4 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10">
-                          <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                            <Sparkles className="w-3 h-3" /> Faculty Response
+                        <div className="mt-4 p-3 bg-primary/5 rounded-xl border border-primary/10">
+                          <p className="text-[9px] font-black text-primary uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                            <MessageSquare className="w-3 h-3" /> Admin Response
                           </p>
-                          <p className="text-[11px] text-emerald-900/80 font-medium line-clamp-3">{query.response}</p>
+                          <p className="text-[11px] text-foreground font-medium line-clamp-2 leading-relaxed">{query.response}</p>
                         </div>
                       )}
                     </motion.div>
@@ -759,6 +777,64 @@ export default function ParentDashboardPage({ onLogout }: ParentDashboardProps) 
           </Card>
         </motion.div>
       </main>
+
+      {/* Ticket Details Modal */}
+      <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
+        <DialogContent className="sm:max-w-[600px] rounded-[2rem] border-primary/20 shadow-2xl">
+          <DialogHeader>
+            <div className="flex items-center justify-between mb-2">
+              <Badge className={`${selectedTicket ? getStatusColor(selectedTicket.status) : ''} text-[10px] font-black uppercase tracking-widest border-none px-3 py-1`}>
+                {selectedTicket?.status}
+              </Badge>
+              <Badge variant="outline" className={`${selectedTicket ? getPriorityColor(selectedTicket.priority) : ''} text-[10px] font-bold border-none`}>
+                {selectedTicket?.priority} Priority
+              </Badge>
+            </div>
+            <DialogTitle className="text-2xl font-black tracking-tight">{selectedTicket?.subject}</DialogTitle>
+            <DialogDescription className="text-xs font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-2 mt-2">
+              <Clock className="w-3.5 h-3.5" />
+              Created on {selectedTicket?.createdAt ? new Date(selectedTicket.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' }) : 'N/A'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Original Message</label>
+              <div className="p-4 bg-secondary/30 rounded-2xl text-sm font-medium leading-relaxed italic opacity-90 border border-border/30">
+                "{selectedTicket?.message}"
+              </div>
+            </div>
+
+            {selectedTicket?.response && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Official Admin Response
+                </label>
+                <div className="p-5 bg-primary/5 rounded-2xl border border-primary/20 text-sm font-medium text-foreground leading-relaxed shadow-sm">
+                  {selectedTicket.response}
+                </div>
+              </div>
+            )}
+            
+            {!selectedTicket?.response && selectedTicket?.status !== 'Resolved' && (
+              <div className="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/20 flex items-center gap-3">
+                <Clock className="w-5 h-5 text-amber-500" />
+                <p className="text-xs font-bold text-amber-800 uppercase tracking-tight">Our team is currently reviewing your message.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8">
+            <Button 
+              onClick={() => setSelectedTicket(null)}
+              className="w-full rounded-2xl py-6 h-auto font-black text-[10px] uppercase tracking-widest gap-2 bg-foreground text-background hover:bg-foreground/90 transition-all shadow-xl"
+            >
+              Close Details
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -65,7 +65,12 @@ export default function AdminAdmissionsPage({ onNavigate }: AdminAdmissionsPageP
 
   const fetchAdmissions = async () => {
     try {
-      const response = await fetch(`${API_URL}/admissions`)
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API_URL}/admissions`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       const data = await response.json()
       setAdmissions(Array.isArray(data) ? data : [])
     } catch (error) {
@@ -137,16 +142,23 @@ export default function AdminAdmissionsPage({ onNavigate }: AdminAdmissionsPageP
     }
 
     try {
+      const token = localStorage.getItem('token')
       if (editingId) {
         await fetch(`${API_URL}/admissions/${editingId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(formData)
         })
       } else {
         await fetch(`${API_URL}/admissions`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(formData)
         })
       }
@@ -161,8 +173,12 @@ export default function AdminAdmissionsPage({ onNavigate }: AdminAdmissionsPageP
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this application?')) {
       try {
+        const token = localStorage.getItem('token')
         await fetch(`${API_URL}/admissions/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         })
         fetchAdmissions()
       } catch (error) {

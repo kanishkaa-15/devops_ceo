@@ -130,7 +130,7 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
 
       const [studentRes, riskRes, gradeRes, attendanceRes] = await Promise.all([
         fetch(`${API_URL}/admissions?status=Approved&grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers }),
-        fetch(`${API_URL}/analytics/predictions/risk-assessment`, { headers }),
+        fetch(`${API_URL}/analytics/predictions/risk-assessment?grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers }),
         fetch(`${API_URL}/grades?grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers }),
         fetch(`${API_URL}/attendance?grade=${encodeURIComponent(currentClass)}&section=${encodeURIComponent(currentSection)}`, { headers })
       ])
@@ -229,7 +229,7 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
   const studentListWithRisks = useMemo(() => {
     if (!Array.isArray(students)) return []
     return students.map(s => {
-      const riskInfo = Array.isArray(risks) ? risks.find(r => r.studentName === s.studentName) : null
+      const riskInfo = Array.isArray(risks) ? risks.find(r => r.studentId === s.studentId) : null
       return {
         ...s,
         riskScore: riskInfo?.riskScore || 0,
@@ -341,13 +341,11 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
     try {
       const token = localStorage.getItem('token')
       const headers = { 'Authorization': `Bearer ${token}` }
-      // Fetch full admission details to edit
-      const res = await fetch(`${API_URL}/admissions?studentName=${encodeURIComponent(student.studentName)}`, { headers })
-      const data = await res.json()
+      // Fetch full admission details to edit by _id for precision
+      const res = await fetch(`${API_URL}/admissions/${student._id}`, { headers })
+      const fullDetails = await res.json()
       
-      const fullDetails = Array.isArray(data) ? data.find((d: any) => d.studentName === student.studentName) : null
-      
-      if (fullDetails) {
+      if (res.ok && fullDetails) {
         setSelectedStudent(student)
         setStudentFormData(fullDetails)
       } else {

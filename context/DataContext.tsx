@@ -52,12 +52,12 @@ interface DataContextType {
   deleteStaff: (id: string) => void
 
   admissions: AdmissionApplication[]
-  addAdmission: (app: Omit<AdmissionApplication, 'id'>) => void
+  addAdmission: (app: Partial<AdmissionApplication> & Omit<AdmissionApplication, 'id'>) => void
   updateAdmission: (id: string, app: Omit<AdmissionApplication, 'id'>) => void
   deleteAdmission: (id: string) => void
 
   queries: ParentQuery[]
-  addQuery: (query: Omit<ParentQuery, 'id'>) => void
+  addQuery: (query: Partial<ParentQuery> & Omit<ParentQuery, 'id'>) => void
   updateQuery: (id: string, query: Omit<ParentQuery, 'id'>) => void
   deleteQuery: (id: string) => void
 }
@@ -103,13 +103,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     socket.on('newQuery', (newQuery: ParentQuery) => {
       console.log('Real-Time Context: Received newQuery payload from quantum link')
-      // Append to the beginning of the list to show newest first
-      setQueries(prev => [newQuery, ...prev])
+      setQueries(prev => {
+        // Prevent duplicates from race conditions between manual POST and Socket event
+        const exists = prev.some(q => q._id === newQuery._id || q.id === newQuery.id)
+        if (exists) return prev
+        return [newQuery, ...prev]
+      })
     })
 
     socket.on('newAdmission', (newAdmission: AdmissionApplication) => {
       console.log('Real-Time Context: Received newAdmission payload from quantum link')
-      setAdmissions(prev => [newAdmission, ...prev])
+      setAdmissions(prev => {
+        const exists = prev.some(a => a._id === newAdmission._id || a.id === newAdmission.id)
+        if (exists) return prev
+        return [newAdmission, ...prev]
+      })
     })
 
     socket.on('updateQuery', (updatedQuery: ParentQuery) => {
@@ -130,11 +138,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateStaff = (id: string, member: Omit<StaffMember, 'id'>) => setStaff(prev => prev.map(s => (s.id === id || s._id === id ? { ...member, id } : s)))
   const deleteStaff = (id: string) => setStaff(prev => prev.filter(s => s.id !== id && s._id !== id))
 
-  const addAdmission = (app: Omit<AdmissionApplication, 'id'>) => setAdmissions(prev => [...prev, { ...app, id: Date.now().toString() }])
+  const addAdmission = (app: Partial<AdmissionApplication> & Omit<AdmissionApplication, 'id'>) => setAdmissions(prev => {
+    const exists = prev.some(a => (app._id && a._id === app._id) || (app.id && a.id === app.id))
+    if (exists) return prev
+    return [{ ...app, id: app.id || Date.now().toString() } as AdmissionApplication, ...prev]
+  })
   const updateAdmission = (id: string, app: Omit<AdmissionApplication, 'id'>) => setAdmissions(prev => prev.map(a => (a.id === id || a._id === id ? { ...app, id } : a)))
   const deleteAdmission = (id: string) => setAdmissions(prev => prev.filter(a => a.id !== id && a._id !== id))
 
-  const addQuery = (query: Omit<ParentQuery, 'id'>) => setQueries(prev => [{ ...query, id: Date.now().toString() }, ...prev])
+  const addQuery = (query: Partial<ParentQuery> & Omit<ParentQuery, 'id'>) => setQueries(prev => {
+    const exists = prev.some(q => (query._id && q._id === query._id) || (query.id && q.id === query.id))
+    if (exists) return prev
+    return [{ ...query, id: query.id || Date.now().toString() } as ParentQuery, ...prev]
+  })
   const updateQuery = (id: string, query: Omit<ParentQuery, 'id'>) => setQueries(prev => prev.map(q => (q.id === id || q._id === id ? { ...query, id } : q)))
   const deleteQuery = (id: string) => setQueries(prev => prev.filter(q => q.id !== id && q._id !== id))
 

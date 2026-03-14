@@ -6,11 +6,11 @@ const Grade = require('../models/Grade');
  * Includes consecutive absence penalties and momentum tracking (ML-lite heuristic).
  * Score: 0 (Low Risk) to 100 (High Risk)
  */
-async function calculateStudentRisk(studentName) {
+async function calculateStudentRisk(studentId) {
     try {
         const [attendance, grades] = await Promise.all([
-            Attendance.find({ studentName: { $regex: new RegExp(studentName, 'i') } }).sort({ date: -1 }).limit(30),
-            Grade.find({ studentName: { $regex: new RegExp(studentName, 'i') } }).sort({ date: -1 }).limit(10)
+            Attendance.find({ studentId }).sort({ date: -1 }).limit(30),
+            Grade.find({ studentId }).sort({ date: -1 }).limit(10)
         ]);
 
         if (attendance.length === 0 && grades.length === 0) return 0;
@@ -75,9 +75,9 @@ async function calculateStudentRisk(studentName) {
  * Projects the final outcome for a student based on recent performance.
  * Applies a time-weighted decay to older grades (Recency bias heuristic).
  */
-async function projectAcademicOutcome(studentName) {
+async function projectAcademicOutcome(studentId) {
     try {
-        const grades = await Grade.find({ studentName: { $regex: new RegExp(studentName, 'i') } }).sort({ date: 1 });
+        const grades = await Grade.find({ studentId }).sort({ date: 1 });
 
         if (grades.length < 2) return null;
 

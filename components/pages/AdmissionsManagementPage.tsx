@@ -149,6 +149,7 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
     }
 
     try {
+      const token = localStorage.getItem('token')
       const cleanedData = {
         ...formData,
         studentName: formData.studentName?.trim(),
@@ -160,13 +161,19 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
       if (editingId) {
         await fetch(`${API_URL}/admissions/${editingId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(cleanedData)
         });
       } else {
         await fetch(`${API_URL}/admissions`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(cleanedData)
         });
       }
@@ -181,8 +188,12 @@ export default function AdmissionsManagementPage({ onNavigate }: AdmissionsManag
   const handleDeleteApplication = async (id: string) => {
     if (confirm('Are you sure you want to delete this application?')) {
       try {
+        const token = localStorage.getItem('token')
         await fetch(`${API_URL}/admissions/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         })
         fetchAdmissions()
       } catch (error) {
