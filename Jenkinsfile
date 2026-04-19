@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        REPO_URL = "https://github.com/kanishkaa-15/school-ceo-dashboard.git"
         DOCKER_IMAGE_BACKEND = "school-ceo-backend"
         DOCKER_IMAGE_FRONTEND = "school-ceo-frontend"
         // DOCKER_REGISTRY = "your-registry-url"
@@ -19,10 +20,10 @@ pipeline {
                 script {
                     echo 'Installing Backend Dependencies...'
                     dir('backend') {
-                        sh 'npm install'
+                        bat 'npm install'
                     }
                     echo 'Installing Frontend Dependencies...'
-                    sh 'npm install'
+                    bat 'npm install'
                 }
             }
         }
@@ -30,7 +31,7 @@ pipeline {
         stage('Build Frontend') {
             steps {
                 echo 'Building Next.js Frontend...'
-                sh 'npm run build'
+                bat 'npm run build'
             }
         }
 
@@ -38,10 +39,10 @@ pipeline {
             steps {
                 script {
                     echo 'Building Backend Docker Image...'
-                    sh "docker build -t ${DOCKER_IMAGE_BACKEND}:latest ./backend"
+                    bat "docker build -t ${DOCKER_IMAGE_BACKEND}:latest ./backend"
                     
                     echo 'Building Frontend Docker Image...'
-                    sh "docker build -t ${DOCKER_IMAGE_FRONTEND}:latest ."
+                    bat "docker build -t ${DOCKER_IMAGE_FRONTEND}:latest ."
                 }
             }
         }
@@ -66,7 +67,7 @@ pipeline {
                 script {
                     echo 'Deploying to Kubernetes...'
                     // Requires kubectl to be configured on the Jenkins agent
-                    sh 'kubectl apply -f k8s/'
+                    bat 'kubectl apply -f k8s/'
                 }
             }
         }
