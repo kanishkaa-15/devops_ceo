@@ -31,10 +31,14 @@ export default function AdminAuditLogsPage({ onLogout, onNavigate }: AdminAuditL
             })
             if (res.ok) {
                 const data = await res.json()
-                setLogs(data)
+                setLogs(Array.isArray(data) ? data : (data.logs || []))
+            } else {
+                console.error('Failed to fetch audit logs', res.statusText)
+                setLogs([])
             }
         } catch (error) {
             console.error('Failed to fetch audit logs', error)
+            setLogs([])
         } finally {
             setLoading(false)
         }

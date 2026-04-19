@@ -1,7 +1,7 @@
 const NodeCache = require('node-cache');
 
 // Standard TTL is 5 minutes (300 seconds)
-const analyticsCache = new NodeCache({ stdTTL: 300, checkperiod: 320 });
+const analyticsCache = new NodeCache({ stdTTL: 300, checkperiod: 320, useClones: false });
 
 const cacheMiddleware = (req, res, next) => {
     // We only cache GET requests

@@ -44,8 +44,8 @@ router.get('/parent/:parentName', protect, async (req, res) => {
   }
 });
 
-// GET admission by ID
-router.get('/:id', async (req, res) => {
+// GET admission by ID (Protected)
+router.get('/:id', protect, rbac(['ceo', 'admin', 'staff']), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Admission not found' });
@@ -99,7 +99,7 @@ router.post('/', protect, rbac(['ceo', 'admin']), async (req, res) => {
 });
 
 // PUT update admission (Protected)
-router.put('/:id', protect, rbac(['ceo', 'admin']), async (req, res) => {
+router.put('/:id', protect, rbac(['ceo', 'admin', 'staff']), async (req, res) => {
   try {
     const admission = await Admission.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!admission) return res.status(404).json({ message: 'Admission not found' });

@@ -2,6 +2,7 @@ const xlsx = require('xlsx');
 const Admission = require('../models/Admission');
 const Grade = require('../models/Grade');
 const { sendPerformanceEmail } = require('../utils/emailService');
+const { sendWhatsAppPerformanceAlert } = require('../utils/whatsappService');
 
 /**
  * Service to parse Excel files and upsert student data into the Admission and Grade collections.
@@ -13,47 +14,62 @@ const importExcelData = async (filePath, io) => {
     const datasheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(datasheet);
 
-    console.log(`Excel Service: Processing ${data.length} records from ${filePath}`);
-
-    const results = {
-      added: 0,
-      updated: 0,
-      failed: 0,
-      gradesUpdated: 0
+    // Normalization Helpers
+    const normalizeGrade = (val) => {
+      if (!val) return '';
+      let str = val.toString().trim().replace(/^(grade|class)\s+/i, '');
+      if (/^\d+$/.test(str)) return `Class ${str}`;
+      if (!str.toLowerCase().startsWith('class')) {
+        return `Class ${str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()}`;
+      }
+      return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
     };
 
+    const normalizeSection = (val) => {
+      if (!val) return 'A';
+      return val.toString().trim().toUpperCase();
+    };
+
+    console.log(`Excel Service: Processing ${data.length} records from ${filePath}`);
+
+    const results = { added: 0, updated: 0, failed: 0, gradesUpdated: 0 };
     const SUBJECTS = ['Mathematics', 'Science', 'English', 'Social Studies'];
+    
+    // Performance Optimization: Fetch all students once
+    const allStudents = await Admission.find({ status: 'Approved' });
+    const studentMap = new Map();
+    allStudents.forEach(s => {
+      if (s.studentId) studentMap.set(s.studentId.toString().toLowerCase(), s);
+      if (s.studentName) studentMap.set(s.studentName.toString().toLowerCase(), s);
+    });
+
+    const studentBulkOps = [];
+    const gradeBulkOps = [];
+    const notificationQueue = [];
 
     for (const row of data) {
       try {
-        const studentId = row.studentId || row['Student ID'] || row.ID || row.id;
-        const studentName = row.studentName || row['Student Name'] || row.Name || row.name;
-        const gradeLevel = row.grade || row['Grade'] || row.Class || row.class;
-        const section = row.section || row['Section'] || 'A';
+        const studentId = (row.studentId || row['Student ID'] || row.ID || row.id)?.toString();
+        const studentName = (row.studentName || row['Student Name'] || row.Name || row.name)?.toString();
+        const rawGrade = row.grade || row['Grade'] || row.Class || row.class;
+        const rawSection = row.section || row['Section'];
 
         if (!studentName && !studentId) {
           results.failed++;
           continue;
         }
 
+        // Match student from Map
+        const studentDoc = (studentId && studentMap.get(studentId.toLowerCase())) || 
+                          (studentName && studentMap.get(studentName.toLowerCase()));
 
-        // 1. Upsert Admission/Profile
-        // Try to find existing student first by ID OR Name
-        let studentDoc = null;
-        if (studentId) {
-          studentDoc = await Admission.findOne({ studentId });
-        }
-        if (!studentDoc && studentName) {
-          studentDoc = await Admission.findOne({
-            studentName: { $regex: new RegExp(`^${studentName}$`, 'i') }
-          });
-        }
-
-        // If not found and no grade info in Excel, we can't create a new student
-        if (!studentDoc && !gradeLevel) {
+        if (!studentDoc && !rawGrade) {
           results.failed++;
           continue;
         }
+
+        const normalizedGrade = normalizeGrade(rawGrade || (studentDoc ? studentDoc.grade : ''));
+        const normalizedSection = normalizeSection(rawSection || (studentDoc ? studentDoc.section : 'A'));
 
         const studentData = {
           studentId: studentId || (studentDoc ? studentDoc.studentId : `STU${Date.now()}${Math.floor(Math.random() * 1000)}`),
@@ -61,76 +77,65 @@ const importExcelData = async (filePath, io) => {
           parentName: row.parentName || row['Parent Name'] || (studentDoc ? studentDoc.parentName : 'N/A'),
           email: row.email || row['Email'] || (studentDoc ? studentDoc.email : 'N/A'),
           phone: row.phone || row['Phone'] || (studentDoc ? studentDoc.phone : 'N/A'),
-          grade: (gradeLevel ? gradeLevel.toString() : (studentDoc ? studentDoc.grade : '')),
-          section: (row.section || row['Section'] || (studentDoc ? studentDoc.section : 'A')).toString(),
+          grade: normalizedGrade,
+          section: normalizedSection,
           status: 'Approved'
         };
 
-        if (studentDoc) {
-          await Admission.findByIdAndUpdate(studentDoc._id, studentData);
-          results.updated++;
-          if (io) io.emit('updateAdmission', { ...studentData, _id: studentDoc._id });
-        } else {
-          studentDoc = new Admission(studentData);
-          await studentDoc.save();
-          results.added++;
-          if (io) io.emit('newAdmission', studentDoc);
-        }
+        // Queue student upsert
+        studentBulkOps.push({
+          updateOne: {
+            filter: studentDoc ? { _id: studentDoc._id } : { studentId: studentData.studentId },
+            update: { $set: studentData },
+            upsert: true
+          }
+        });
 
-        // 2. Upsert Individual Subject Grades
+        // 2. Queue Individual Subject Grades
         for (const subject of SUBJECTS) {
           const rawScore = row[subject];
           if (rawScore !== undefined && rawScore !== null && rawScore !== '-') {
-            // Strip % if present and parse as number
             let score = typeof rawScore === 'string'
               ? parseFloat(rawScore.replace(/[^\d.]/g, ''))
               : parseFloat(rawScore);
 
-            // Handle decimal percentages (0.85 -> 85)
-            if (score > 0 && score <= 1) {
-              score = Math.round(score * 100);
-            }
+            if (score > 0 && score <= 1) score = Math.round(score * 100);
 
             if (!isNaN(score)) {
-              const gradeData = {
-                studentId: studentData.studentId,
-                studentName: studentData.studentName,
-                class: studentData.grade,
-                section: studentData.section,
-                subject,
-                score,
-                grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : 'C',
-                title: 'Excel Sync',
-                date: new Date()
-              };
+              const gradeStatus = score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : 'C';
+              gradeBulkOps.push({
+                updateOne: {
+                  filter: { studentId: studentData.studentId, subject, title: 'Excel Sync' },
+                  update: { 
+                    $set: {
+                      studentId: studentData.studentId,
+                      studentName: studentData.studentName,
+                      class: studentData.grade,
+                      section: studentData.section,
+                      subject,
+                      score,
+                      grade: gradeStatus,
+                      title: 'Excel Sync',
+                      date: new Date()
+                    } 
+                  },
+                  upsert: true
+                }
+              });
 
-              // Upsert Grade: Update existing 'Excel Sync' grade for this subject or create new
-              const upsertResult = await Grade.findOneAndUpdate(
-                {
-                  studentId: studentData.studentId,
-                  subject,
-                  title: 'Excel Sync'
-                },
-                gradeData,
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-              );
-              console.log(`Excel Service: Upserted grade for ${studentData.studentName} - ${subject}: ${score}`, upsertResult ? 'SUCCESS' : 'FAILED');
-              results.gradesUpdated++;
-
-              // Send email notification for the imported grade
-              try {
-                if (studentData.email && studentData.email !== 'N/A') {
-                  await sendPerformanceEmail({
-                    parentEmail: studentData.email,
+              // Queue notification (Background)
+              if (studentData.email || studentData.phone) {
+                notificationQueue.push({
+                  email: studentData.email,
+                  phone: studentData.phone,
+                  data: {
                     studentName: studentData.studentName,
                     subject,
                     score,
-                    grade: gradeData.grade,
+                    grade: gradeStatus,
                     title: 'Excel Sync'
-                  });
-                }
-              } catch (emailErr) {
-                console.error(`Excel Service: Failed to send notification for ${studentData.studentName}`, emailErr);
+                  }
+                });
               }
             }
           }
@@ -141,7 +146,30 @@ const importExcelData = async (filePath, io) => {
       }
     }
 
-    // Refresh dashboard if grades were updated
+    // 3. Execute Bulk Operations
+    if (studentBulkOps.length > 0) {
+      console.log(`Excel Service: Executing ${studentBulkOps.length} student updates...`);
+      const sResult = await Admission.bulkWrite(studentBulkOps);
+      results.added = sResult.upsertedCount;
+      results.updated = sResult.modifiedCount;
+    }
+
+    if (gradeBulkOps.length > 0) {
+      console.log(`Excel Service: Executing ${gradeBulkOps.length} grade updates...`);
+      const gResult = await Grade.bulkWrite(gradeBulkOps);
+      results.gradesUpdated = gResult.upsertedCount + gResult.modifiedCount;
+    }
+
+    // 4. Fire notifications in background (Don't await)
+    if (notificationQueue.length > 0) {
+      console.log(`Excel Service: Sending ${notificationQueue.length} notifications in background...`);
+      // We process a limited burst to avoid overwhelming the mail server immediately
+      notificationQueue.slice(0, 100).forEach(n => {
+        if (n.email && n.email !== 'N/A') sendPerformanceEmail({ parentEmail: n.email, ...n.data }).catch(() => {});
+        if (n.phone && n.phone !== 'N/A') sendWhatsAppPerformanceAlert({ parentPhone: n.phone, ...n.data }).catch(() => {});
+      });
+    }
+
     if (results.gradesUpdated > 0 && io) {
       io.emit('gradesUpdated');
     }

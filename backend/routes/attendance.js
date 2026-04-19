@@ -85,7 +85,28 @@ router.get('/id/:studentId', protect, async (req, res) => {
 router.post('/bulk', async (req, res) => {
     try {
         const records = req.body; // Expecting array of { studentName, class, section, subject, status, date }
-        const result = await Attendance.insertMany(records);
+        
+        // Upsert each record to prevent duplicate entries for the same student, subject, and day
+        const bulkOps = records.map(record => {
+            const start = new Date(record.date || Date.now());
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(record.date || Date.now());
+            end.setHours(23, 59, 59, 999);
+
+            return {
+                updateOne: {
+                    filter: {
+                        studentName: record.studentName,
+                        subject: record.subject,
+                        date: { $gte: start, $lte: end }
+                    },
+                    update: { $set: { ...record, date: record.date || new Date() } },
+                    upsert: true
+                }
+            };
+        });
+
+        const result = await Attendance.bulkWrite(bulkOps);
 
         // Auto-Trigger Announcements for Absences
         const Announcement = require('../models/Announcement');
@@ -106,7 +127,8 @@ router.post('/bulk', async (req, res) => {
             }
         }
 
-        res.status(201).json(result);
+        res.status(201).json({ message: 'Attendance processed successfully', result });
+
     } catch (error) {
         res.status(400).json({ message: error.message });
     }

@@ -835,37 +835,104 @@ export default function StaffDashboardPage({ onLogout }: { onLogout: () => void 
                 {/* Vertical Divider */}
                 <div className="hidden md:block w-px bg-slate-100 dark:bg-slate-800 absolute left-1/2 top-8 bottom-8" />
 
-                {/* Recent History */}
+                {/* 30-Day Attendance Visualization */}
                 <div className="space-y-4">
-                  <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Recent Attendance Log</h4>
-                  <div className="space-y-2">
-                    {attendanceHistory
-                      .filter(a => a.studentName === studentFormData.studentName)
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .slice(0, 3)
-                      .map((record, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${record.status === 'Present' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                              <CalendarIcon className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold">{new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
-                              <p className="text-[9px] font-bold uppercase text-slate-400">Recorded Entry</p>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">30-Day Attendance Heatmap</h4>
+                    <div className="flex items-center gap-2 text-[9px] font-bold uppercase text-slate-400">
+                      <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500" /> Present</div>
+                      <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-rose-500" /> Absent</div>
+                      <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-800" /> N/A</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-wrap gap-1.5 list-none">
+                      {Array.from({ length: 30 }).map((_, i) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - (29 - i)); // From past (left) to present (right)
+                        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const record = attendanceHistory.find(a => 
+                          a.studentName === studentFormData.studentName && 
+                          new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) === dateStr
+                        );
+                        
+                        let colorClass = "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700";
+                        if (record?.status === 'Present') colorClass = "bg-emerald-500 hover:bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]";
+                        if (record?.status === 'Absent') colorClass = "bg-rose-500 hover:bg-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.3)]";
+
+                        return (
+                          <div 
+                            key={i} 
+                            className={`w-6 h-6 md:w-8 md:h-8 rounded-md ${colorClass} transition-all cursor-crosshair relative group`}
+                          >
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                              {d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                              {record ? ` - ${record.status}` : ' - No Record'}
                             </div>
                           </div>
-                          <Badge variant="outline" className={`border-none ${record.status === 'Present' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
-                            {record.status}
-                          </Badge>
-                        </div>
-                      ))}
-                    {attendanceHistory.filter(a => a.studentName === studentFormData.studentName).length === 0 && (
-                      <div className="p-8 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                        <CalendarIcon className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                        <p className="text-xs font-bold text-slate-400">No recent records found</p>
-                      </div>
-                    )}
+                        );
+                      })}
+                    </div>
                   </div>
+
+                  <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider mt-6">Detailed 30-Day Log</h4>
+                  <ScrollArea className="h-[200px] w-full pr-4">
+                    <div className="space-y-2">
+                      {Array.from({ length: 30 }).map((_, i) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i); // From present down to 30 days ago
+                        const dateString = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        
+                        // Find all records for this specific day
+                        const dayRecords = attendanceHistory.filter(a => 
+                          a.studentName === studentFormData.studentName && 
+                          new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) === dateString
+                        ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        
+                        if (dayRecords.length === 0) {
+                          return (
+                            <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-transparent opacity-60">
+                               <div className="flex items-center gap-3">
+                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-400">
+                                   <CalendarIcon className="w-4 h-4" />
+                                 </div>
+                                 <div>
+                                   <p className="text-xs font-bold text-slate-500">{d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                   <p className="text-[9px] font-bold uppercase text-slate-400">No Record Found</p>
+                                 </div>
+                               </div>
+                               <Badge variant="outline" className="border-none bg-slate-100 dark:bg-slate-800 text-slate-400">Unmarked</Badge>
+                            </div>
+                          );
+                        }
+
+                        // If records exist for this day
+                        return dayRecords.map((record, rIdx) => (
+                          <div key={`${i}-${rIdx}`} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${record.status === 'Present' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                <CalendarIcon className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                  {d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                  {' • '}
+                                  <span className="text-slate-500 font-medium whitespace-nowrap">
+                                    {new Date(record.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </p>
+                                <p className="text-[9px] font-bold uppercase text-slate-400">{record.subject || 'Daily Attendance'}</p>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className={`border-none ${record.status === 'Present' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
+                              {record.status}
+                            </Badge>
+                          </div>
+                        ));
+                      })}
+                    </div>
+                  </ScrollArea>
                 </div>
               </div>
             </div>

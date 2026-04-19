@@ -160,7 +160,7 @@ export default function ParentQueries() {
                       animate={{ opacity: 1, x: 0, scale: 1 }}
                       exit={{ opacity: 0, x: 20, scale: 0.95 }}
                       transition={{ duration: 0.3 }}
-                      key={query._id || query.id || idx}
+                      key={`${query._id || query.id || 'query'}-${idx}`}
                       className="group flex items-center gap-4 bg-secondary/20 hover:bg-secondary/40 rounded-xl p-4 transition-all duration-300 border border-transparent hover:border-border/50"
                     >
                       <div className={`w-10 h-10 rounded-full ${config.bg} flex items-center justify-center`}>

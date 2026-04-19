@@ -105,23 +105,41 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // 1. Initial REST API Fetch
     const fetchInitialData = async () => {
       try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+
         const [staffRes, admissionsRes, queriesRes] = await Promise.all([
-          fetch(`${API_URL}/staff`).catch(e => { console.warn('Staff fetch failed', e); return null }),
-          fetch(`${API_URL}/admissions`).catch(e => { console.warn('Admissions fetch failed', e); return null }),
-          fetch(`${API_URL}/queries`).catch(e => { console.warn('Queries fetch failed', e); return null })
+          fetch(`${API_URL}/staff`, { headers }).catch(e => { console.warn('Staff fetch failed', e); return null }),
+          fetch(`${API_URL}/admissions`, { headers }).catch(e => { console.warn('Admissions fetch failed', e); return null }),
+          fetch(`${API_URL}/queries`, { headers }).catch(e => { console.warn('Queries fetch failed', e); return null })
         ])
 
         if (staffRes?.ok) {
           const staffData = await staffRes.json()
-          if (Array.isArray(staffData)) setStaff(staffData)
+          if (Array.isArray(staffData)) {
+            const uniqueStaff = staffData.filter((s, idx, self) => 
+              idx === self.findIndex(t => (t._id && s._id && t._id === s._id) || (t.id && s.id && t.id === s.id))
+            )
+            setStaff(uniqueStaff)
+          }
         }
         if (admissionsRes?.ok) {
           const admissionsData = await admissionsRes.json()
-          if (Array.isArray(admissionsData)) setAdmissions(admissionsData)
+          if (Array.isArray(admissionsData)) {
+            const uniqueAdmissions = admissionsData.filter((a, idx, self) => 
+              idx === self.findIndex(t => (t._id && a._id && t._id === a._id) || (t.id && a.id && t.id === a.id))
+            )
+            setAdmissions(uniqueAdmissions)
+          }
         }
         if (queriesRes?.ok) {
           const queriesData = await queriesRes.json()
-          if (Array.isArray(queriesData)) setQueries(queriesData)
+          if (Array.isArray(queriesData)) {
+            const uniqueQueries = queriesData.filter((q, idx, self) => 
+              idx === self.findIndex(t => (t._id && q._id && t._id === q._id) || (t.id && q.id && t.id === q.id))
+            )
+            setQueries(uniqueQueries)
+          }
         }
       } catch (err) {
         console.error('Context initialization failed:', err)

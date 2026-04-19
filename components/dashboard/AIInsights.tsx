@@ -262,7 +262,7 @@ export default function AIInsights({ stats }: AIInsightsProps) {
                     <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[10px] font-black uppercase tracking-widest text-rose-500">Emergency Resource Allocation</span>
-                        <span className="text-sm font-black text-white">$2,500</span>
+                        <span className="text-sm font-black text-white">₹2,00,000</span>
                       </div>
                       <p className="text-[10px] text-rose-200/70 font-bold">Recommended allocation for immediate counselor overtime and automated parent SMS blasts.</p>
                     </div>
