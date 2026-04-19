@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REPO_URL = "https://github.com/kanishkaa-15/school-ceo-dashboard.git"
+        REPO_URL = "https://github.com/kanishkaa-15/devops_ceo.git"
         DOCKER_IMAGE_BACKEND = "school-ceo-backend"
         DOCKER_IMAGE_FRONTEND = "school-ceo-frontend"
         // DOCKER_REGISTRY = "your-registry-url"
