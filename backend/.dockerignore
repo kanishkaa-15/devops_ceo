@@ -3,3 +3,9 @@ npm-debug.log
 .git
 .env
 .next
+uploads
+reports
+temp
+*.log
+Dockerfile
+.vscode
