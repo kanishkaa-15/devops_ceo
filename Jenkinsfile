@@ -30,9 +30,11 @@ pipeline {
         stage('Docker Push') {
             steps {
                 script {
-                    // Requires Docker Registry Credentials in Jenkins (ID: 'docker-hub-creds')
-                    // Replace 'your-docker-id' with your actual username
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-hub-creds') {
+                    // Using withCredentials and bat for better compatibility on Windows Jenkins
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        echo 'Logging into Docker Hub...'
+                        bat "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
+                        
                         echo 'Pushing Backend Docker Image...'
                         bat "docker tag ${DOCKER_IMAGE_BACKEND}:latest ${DOCKER_REGISTRY}/${DOCKER_IMAGE_BACKEND}:latest"
                         bat "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_BACKEND}:latest"
