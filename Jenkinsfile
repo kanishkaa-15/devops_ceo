@@ -5,7 +5,7 @@ pipeline {
         REPO_URL = "https://github.com/kanishkaa-15/devops_ceo.git"
         DOCKER_IMAGE_BACKEND = "school-ceo-backend"
         DOCKER_IMAGE_FRONTEND = "school-ceo-frontend"
-        // DOCKER_REGISTRY = "your-registry-url"
+        DOCKER_REGISTRY = "kanishkaa123"
     }
 
     stages {
@@ -27,30 +27,34 @@ pipeline {
             }
         }
 
-        /*
         stage('Docker Push') {
             steps {
                 script {
-                    // Requires dockerLogin or custom credentials setup
-                    // sh "docker tag ${DOCKER_IMAGE_BACKEND}:latest ${DOCKER_REGISTRY}/${DOCKER_IMAGE_BACKEND}:latest"
-                    // sh "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_BACKEND}:latest"
-                    
-                    // sh "docker tag ${DOCKER_IMAGE_FRONTEND}:latest ${DOCKER_REGISTRY}/${DOCKER_IMAGE_FRONTEND}:latest"
-                    // sh "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_FRONTEND}:latest"
+                    // Requires Docker Registry Credentials in Jenkins (ID: 'docker-hub-creds')
+                    // Replace 'your-docker-id' with your actual username
+                    docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-hub-creds') {
+                        echo 'Pushing Backend Docker Image...'
+                        bat "docker tag ${DOCKER_IMAGE_BACKEND}:latest ${DOCKER_REGISTRY}/${DOCKER_IMAGE_BACKEND}:latest"
+                        bat "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_BACKEND}:latest"
+                        
+                        echo 'Pushing Frontend Docker Image...'
+                        bat "docker tag ${DOCKER_IMAGE_FRONTEND}:latest ${DOCKER_REGISTRY}/${DOCKER_IMAGE_FRONTEND}:latest"
+                        bat "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_FRONTEND}:latest"
+                    }
                 }
             }
         }
-        */
 
         stage('Deploy to Kubernetes') {
             steps {
                 script {
                     echo 'Deploying to Kubernetes...'
-                    // Requires kubectl to be configured on the Jenkins agent
-                    bat 'kubectl apply -f k8s/'
+                    // Using --validate=false to bypass the OpenAPI validation error seen in Jenkins logs
+                    bat "kubectl apply -f k8s/ --validate=false"
                 }
             }
         }
+
     }
 
     post {

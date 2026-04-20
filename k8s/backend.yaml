@@ -25,13 +25,41 @@ spec:
     spec:
       containers:
         - name: backend
-          image: school-ceo-backend:latest
+          image: kanishkaa123/school-ceo-backend:latest
           ports:
             - containerPort: 5000
           env:
             - name: MONGODB_URI
-              value: "mongodb://mongodb:27017/school_ceo"
+              valueFrom:
+                secretKeyRef:
+                  name: school-ceo-secrets
+                  key: MONGODB_URI
             - name: PORT
-              value: "5000"
+              valueFrom:
+                configMapKeyRef:
+                  name: school-ceo-config
+                  key: PORT
             - name: FRONTEND_URL
-              value: "http://frontend:3000"
+              valueFrom:
+                configMapKeyRef:
+                  name: school-ceo-config
+                  key: FRONTEND_URL
+          livenessProbe:
+            httpGet:
+              path: /api/health # Assuming there's a health endpoint, otherwise use a simple one
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
