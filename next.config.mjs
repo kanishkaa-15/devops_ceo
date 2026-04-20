@@ -7,9 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    turbo: {
-      root: 'D:/school-ceo-dashboard review 1/school-ceo-dashboard'
-    }
+    // Removed hardcoded local path to fix Docker builds
   }
 }
 
